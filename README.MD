@@ -39,11 +39,11 @@ hab-proj-o36/
    ```
    ./setup.sh
    ```
-
-3. Instale as dependências:
-   ```
-   pip install -r requirements.txt
-   ```
+   Este script irá:
+   - Criar um ambiente virtual Python
+   - Ativar o ambiente virtual
+   - Instalar todas as dependências necessárias
+   - Tornar o arquivo main.py executável
 
 ## Uso
 
