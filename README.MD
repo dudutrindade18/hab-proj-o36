@@ -1,86 +1,104 @@
-# Webcam Viewer
+# HAB Project - Sistema de Classificação com IA
 
-A simple Python application that displays your webcam feed using OpenCV.
+Esse projeto integra uma câmera com um modelo de IA para classificação em tempo real. O sistema captura imagens da webcam, processa-as usando um modelo de IA treinado e exibe os resultados na tela.
 
-## Prerequisites
-
-- Python (managed by pyenv or your preferred Python version manager)
-- macOS with a working webcam
-- Terminal access
-
-## Project Structure
+## Estrutura do Projeto
 
 ```
-.
-├── README.md
-├── requirements.txt    # Project dependencies
-├── setup.sh           # Setup script for virtual environment
-└── webcam.py          # Main application script
+hab-proj-o36/
+├── converted_keras/       # Pasta com o modelo de IA
+│   ├── keras_model.h5     # Arquivo do modelo Keras
+│   └── labels.txt         # Arquivo com as labels do modelo
+├── hab_proj/              # Pacote principal do projeto
+│   ├── __init__.py        # Arquivo de inicialização do pacote
+│   ├── camera.py          # Módulo para gerenciar a câmera
+│   └── model.py           # Módulo para gerenciar o modelo de IA
+├── main.py                # Ponto de entrada da aplicação
+├── requirements.txt       # Dependências do projeto
+├── setup.sh               # Script de configuração
+└── webcam.py              # Script original da webcam (mantido para referência)
 ```
 
-## Installation
+## Requisitos
 
-1. Clone this repository:
-```bash
-git clone <repository-url>
-cd <repository-name>
+- Python 3.9
+- OpenCV
+- TensorFlow
+- NumPy
+- Pillow
+
+## Instalação
+
+1. Clone o repositório:
+   ```
+   git clone <https://github.com/dudutrindade18/hab-proj-o36>
+   cd hab-proj-o36
+   ```
+
+2. Execute o script de configuração:
+   ```
+   ./setup.sh
+   ```
+
+3. Instale as dependências:
+   ```
+   pip install -r requirements.txt
+   ```
+
+## Uso
+
+Execute o programa principal:
+
+```
+python main.py
 ```
 
-2. Make the setup script executable:
-```bash
-chmod +x setup.sh
+### Opções de Linha de Comando
+
+- `--camera`: ID da câmera (padrão: 0, geralmente a webcam integrada)
+- `--model`: Caminho para o arquivo do modelo (padrão: converted_keras/keras_model.h5)
+- `--labels`: Caminho para o arquivo de labels (padrão: converted_keras/labels.txt)
+- `--interval`: Intervalo em segundos entre predições (padrão: 0.5)
+- `--no-fps`: Não exibir FPS na tela
+
+Exemplo:
+```
+python main.py --camera 1 --interval 0.2
 ```
 
-3. Run the setup script to create a virtual environment and install dependencies:
-```bash
-./setup.sh
-```
+## Funcionamento
 
-This script will:
-- Create a new virtual environment in the `venv` directory
-- Activate the virtual environment
-- Install required dependencies from `requirements.txt`
+1. O programa carrega o modelo de IA especificado.
+2. Inicializa a câmera e começa a capturar frames.
+3. Em intervalos regulares, o frame atual é processado pelo modelo de IA.
+4. O resultado da classificação é exibido na tela junto com a confiança da predição.
+5. Pressione 'q' para sair do programa.
 
-## Usage
+## Classes do Modelo
 
-1. Activate the virtual environment (if not already activated):
-```bash
-source venv/bin/activate
-```
+O modelo atual classifica as imagens em três categorias:
+- 0: Bom
+- 1: Ruim
+- 2: Nada
 
-2. Run the webcam viewer:
-```bash
-python webcam.py
-```
+## Desenvolvimento
 
-3. Use the application:
-   - A window will open showing your webcam feed
-   - Press 'q' to quit the application
+### Módulos Principais
 
-4. When you're done, you can deactivate the virtual environment:
-```bash
-deactivate
-```
+#### hab_proj.model.AIModel
 
-## Dependencies
+Classe responsável por carregar e utilizar o modelo de IA para classificação.
 
-The project uses the following main dependencies:
-- OpenCV Python (opencv-python): Version 4.5.5.64
-- NumPy: Version 1.24.3 (OpenCV is not yet fully compatible with NumPy 2.x)
+Métodos principais:
+- `__init__(model_path, labels_path)`: Inicializa o modelo
+- `predict(image)`: Realiza a predição em uma imagem
 
-Dependencies are managed through the `requirements.txt` file and are automatically installed during setup.
+#### hab_proj.camera.Camera
 
-## Troubleshooting
+Classe para gerenciar a câmera e integrar com o modelo de IA.
 
-If you encounter any issues:
-
-1. Make sure your webcam is not being used by another application
-2. Check if your webcam is properly connected and recognized by your system
-3. Ensure you have the necessary permissions for webcam access
-4. If you see NumPy-related errors, ensure you're using the version specified in requirements.txt (1.24.3)
-
-If you see "Error: Could not access the webcam", try closing other applications that might be using the webcam.
-
-## License
-
-[Your chosen license]
+Métodos principais:
+- `__init__(camera_id, model)`: Inicializa a câmera
+- `start()`: Inicia a câmera
+- `stop()`: Libera os recursos da câmera
+- `run_with_model(display_fps, prediction_interval)`: Executa a câmera com o modelo de IA

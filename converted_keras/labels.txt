@@ -1,0 +1,3 @@
+0 Bom
+1 Ruim
+2 Nada
