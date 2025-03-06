@@ -22,6 +22,11 @@ echo "Installing requirements..."
 python -m pip install --upgrade pip  # Ensure pip is up to date
 python -m pip install -r requirements.txt
 
-echo "Setup complete! You can now run the webcam script with:"
+echo "Setup complete! You can now run the application with:"
 echo "source venv/bin/activate  # If not already activated"
-echo "python webcam.py"
+echo "python main.py"
+
+# Make main.py executable
+chmod +x main.py
+
+echo "Note: The first execução may take some time as TensorFlow initializes."
