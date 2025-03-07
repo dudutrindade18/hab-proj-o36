@@ -8,6 +8,7 @@ import os
 import argparse
 from hab_proj.model import AIModel
 from hab_proj.camera import Camera
+from hab_proj.serial_comm import ArduinoSerial
 
 def parse_args():
     """
@@ -33,6 +34,16 @@ def parse_args():
     parser.add_argument('--no-fps', action='store_true',
                         help='Não exibir FPS na tela')
     
+    # Argumentos para comunicação serial com Arduino
+    parser.add_argument('--arduino', action='store_true',
+                        help='Habilitar comunicação com Arduino')
+    
+    parser.add_argument('--port', type=str, default=None,
+                        help='Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.')
+    
+    parser.add_argument('--baudrate', type=int, default=9600,
+                        help='Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)')
+    
     return parser.parse_args()
 
 def main():
@@ -55,12 +66,36 @@ def main():
         model = AIModel(args.model, args.labels)
         print("Modelo carregado com sucesso!")
         
-        # Inicializar a câmera com o modelo
-        camera = Camera(camera_id=args.camera, model=model)
+        # Inicializar a comunicação serial com Arduino se solicitado
+        arduino_serial = None
+        if args.arduino:
+            print("Inicializando comunicação com Arduino...")
+            arduino_serial = ArduinoSerial(
+                port=args.port,
+                baudrate=args.baudrate
+            )
+            if arduino_serial.connect():
+                print(f"Arduino conectado na porta {arduino_serial.port}")
+            else:
+                print("Aviso: Não foi possível conectar ao Arduino. O programa continuará sem comunicação serial.")
+                arduino_serial = None
+        
+        # Inicializar a câmera com o modelo e Arduino
+        camera = Camera(
+            camera_id=args.camera, 
+            model=model,
+            arduino_serial=arduino_serial
+        )
         
         # Executar a câmera com o modelo
         print(f"Iniciando câmera {args.camera} com classificação em tempo real...")
+        if arduino_serial:
+            print("Comunicação com Arduino ativada. Enviando comandos baseados nas predições:")
+            print("  - 'Bom' -> Envia '1'")
+            print("  - 'Ruim' -> Envia '0'")
+            print("  - 'Nada' -> Não envia nada")
         print("Pressione 'q' para sair.")
+        
         camera.run_with_model(
             display_fps=not args.no_fps,
             prediction_interval=args.interval
