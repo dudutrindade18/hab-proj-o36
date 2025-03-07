@@ -220,7 +220,7 @@ Para que o Arduino receba corretamente os comandos:
 1. Abra o arquivo `arduino_code/hab_proj_receiver.ino` no Arduino IDE
 2. Faça upload do código para o seu Arduino
 3. Conecte o Arduino ao computador via USB
-4. Execute a aplicação Python com a opção `--arduino`
+4. Execute a aplicação Python (main.py).
 
 O código do Arduino está configurado para:
 - Inicializar a comunicação serial com taxa de 9600 baud
