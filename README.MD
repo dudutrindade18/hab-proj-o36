@@ -19,6 +19,7 @@ hab-proj-o36/
 ├── main.py                # Ponto de entrada da aplicação
 ├── requirements.txt       # Dependências do projeto
 ├── setup.sh               # Script de configuração
+├── test_arduino.py        # Script para testar a comunicação com o Arduino
 └── webcam.py              # Script original da webcam (mantido para referência)
 ```
 
@@ -97,6 +98,60 @@ Usar câmera externa e intervalo de predição mais rápido:
 ```
 python main.py --camera 1 --interval 0.2 --arduino
 ```
+
+## Testando a Comunicação com o Arduino
+
+Para testar a comunicação com o Arduino sem executar todo o sistema de classificação, use o script `test_arduino.py`:
+
+```
+python test_arduino.py [comando] [opções]
+```
+
+### Argumentos
+
+- `comando`: Comando a ser enviado (0: Desligar LED, 1: Ligar LED)
+
+### Opções
+
+- `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
+- `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
+- `--monitor`: Ativar modo de monitoramento contínuo da porta serial
+
+### Exemplos
+
+Ligar o LED (enviar comando 1):
+```
+python test_arduino.py 1
+```
+
+Desligar o LED (enviar comando 0):
+```
+python test_arduino.py 0
+```
+
+Especificar a porta manualmente:
+```
+python test_arduino.py 1 --port /dev/ttyUSB0
+```
+
+Monitorar a porta serial continuamente:
+```
+python test_arduino.py 1 --monitor
+```
+
+### Modo de Monitoramento
+
+Quando você usa a opção `--monitor`, o script entra em um modo interativo que:
+
+1. Envia o comando inicial especificado
+2. Monitora continuamente todas as mensagens enviadas pelo Arduino
+3. Permite enviar comandos adicionais digitando '0' ou '1' seguido de Enter
+4. Continua até que você pressione Ctrl+C ou digite 'exit'
+
+Este modo é útil para:
+- Depurar a comunicação com o Arduino
+- Testar diferentes comandos em sequência
+- Monitorar as respostas do Arduino em tempo real
 
 ## Funcionamento
 
