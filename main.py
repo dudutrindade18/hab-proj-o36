@@ -44,6 +44,9 @@ def parse_args():
     parser.add_argument('--baudrate', type=int, default=9600,
                         help='Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)')
     
+    parser.add_argument('--allow-no-arduino', action='store_true',
+                        help='Permitir execução mesmo se o Arduino não estiver respondendo')
+    
     return parser.parse_args()
 
 def main():
@@ -72,13 +75,23 @@ def main():
             print("Inicializando comunicação com Arduino...")
             arduino_serial = ArduinoSerial(
                 port=args.port,
-                baudrate=args.baudrate
+                baudrate=args.baudrate,
+                require_arduino=not args.allow_no_arduino
             )
+            
+            # Tentar conectar ao Arduino
             if arduino_serial.connect():
-                print(f"Arduino conectado na porta {arduino_serial.port}")
+                if arduino_serial.arduino_responding:
+                    print(f"Arduino conectado e respondendo na porta {arduino_serial.port}")
+                else:
+                    if args.allow_no_arduino:
+                        print("Aviso: Arduino não está respondendo, mas continuando mesmo assim porque --allow-no-arduino foi especificado.")
+                    else:
+                        print("Erro: Arduino não está respondendo. Use --allow-no-arduino para continuar mesmo assim.")
+                        return
             else:
-                print("Aviso: Não foi possível conectar ao Arduino. O programa continuará sem comunicação serial.")
-                arduino_serial = None
+                print("Erro: Não foi possível conectar ao Arduino.")
+                return
         
         # Inicializar a câmera com o modelo e Arduino
         camera = Camera(
@@ -89,11 +102,12 @@ def main():
         
         # Executar a câmera com o modelo
         print(f"Iniciando câmera {args.camera} com classificação em tempo real...")
-        if arduino_serial:
+        if arduino_serial and arduino_serial.arduino_responding:
             print("Comunicação com Arduino ativada. Enviando comandos baseados nas predições:")
             print("  - 'Bom' -> Envia '1'")
             print("  - 'Ruim' -> Envia '0'")
             print("  - 'Nada' -> Não envia nada")
+        
         print("Pressione 'q' para sair.")
         
         camera.run_with_model(

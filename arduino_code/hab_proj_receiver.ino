@@ -4,6 +4,7 @@
  * Este código recebe comandos da aplicação Python via porta serial:
  * - '1': Liga o LED (quando a classificação é "Bom")
  * - '0': Desliga o LED (quando a classificação é "Ruim")
+ * - 'ping': Comando para verificar se o Arduino está conectado
  * 
  * Conexão:
  * - Conecte o Arduino ao computador via USB
@@ -27,21 +28,23 @@ void setup() {
 
 void loop() {
   if (Serial.available() > 0) {          // Verificar se há dados disponíveis
-    char incomingByte = Serial.read();   // Ler um byte da serial
+    // Ler a string completa até o newline
+    String input = Serial.readStringUntil('\n');
+    input.trim();  // Remover espaços em branco e caracteres de nova linha
     
-    // Processar o byte recebido
-    if (incomingByte == '1') {           // Note que estamos comparando com o caractere '1', não o número 1
+    // Verificar se é um comando de ping
+    if (input == "ping") {
+      Serial.println("Arduino pronto para receber comandos!");
+    }
+    // Verificar se é o comando para ligar o LED
+    else if (input == "1") {
       digitalWrite(LED_BUILTIN, HIGH);   // Ligar LED se receber '1'
       Serial.println("LED ON");          // Enviar confirmação
     } 
-    else if (incomingByte == '0') {      // Note que estamos comparando com o caractere '0', não o número 0
+    // Verificar se é o comando para desligar o LED
+    else if (input == "0") {
       digitalWrite(LED_BUILTIN, LOW);    // Desligar LED se receber '0'
       Serial.println("LED OFF");         // Enviar confirmação
-    }
-    
-    // Consumir quaisquer caracteres adicionais (como newline)
-    while (Serial.available() > 0) {
-      Serial.read();
     }
   }
 }

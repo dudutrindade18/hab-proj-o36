@@ -54,6 +54,38 @@ def serial_reader(ser, stop_event):
     except Exception as e:
         print(f"Erro na thread de leitura: {e}")
 
+def verify_arduino_connection(ser):
+    """
+    Verifica se o Arduino está realmente conectado e respondendo.
+    
+    Args:
+        ser (serial.Serial): Objeto de conexão serial
+        
+    Returns:
+        bool: True se o Arduino está respondendo, False caso contrário
+    """
+    # Limpar o buffer de entrada
+    ser.reset_input_buffer()
+    
+    # Enviar um comando de ping
+    print("Verificando conexão com o Arduino...")
+    ser.write(b"ping\n")
+    
+    # Aguardar resposta
+    start_time = time.time()
+    while time.time() - start_time < 3:  # Timeout de 3 segundos
+        if ser.in_waiting:
+            response = ser.readline().decode('utf-8').strip()
+            if "Arduino pronto" in response:
+                print("Arduino conectado e respondendo!")
+                return True
+            else:
+                print(f"Resposta recebida: {response}")
+        time.sleep(0.1)
+    
+    print("AVISO: Arduino não respondeu ao ping. A porta serial está aberta, mas o Arduino pode não estar conectado ou não estar executando o código correto.")
+    return False
+
 def send_command(port, command, baudrate=9600, monitor_mode=False):
     """
     Envia um comando para o Arduino e opcionalmente monitora a porta serial.
@@ -67,10 +99,23 @@ def send_command(port, command, baudrate=9600, monitor_mode=False):
     try:
         # Conectar à porta serial
         ser = serial.Serial(port, baudrate, timeout=2)
-        print(f"Conectado à porta {port} com baudrate {baudrate}")
+        print(f"Porta serial {port} aberta com baudrate {baudrate}")
         
         # Aguardar a inicialização do Arduino
         time.sleep(2)
+        
+        # Verificar se o Arduino está realmente conectado e respondendo
+        arduino_connected = verify_arduino_connection(ser)
+        
+        # Se o Arduino não está respondendo e estamos no modo de monitoramento, não continue
+        if not arduino_connected and monitor_mode:
+            print("Erro: Não é possível entrar no modo de monitoramento sem um Arduino conectado.")
+            ser.close()
+            return
+        
+        # Se o Arduino não está respondendo mas não estamos no modo de monitoramento, avise mas continue
+        if not arduino_connected and not monitor_mode:
+            print("Continuando mesmo sem confirmação do Arduino...")
         
         # Enviar o comando
         cmd_str = str(command) + '\n'
@@ -84,6 +129,8 @@ def send_command(port, command, baudrate=9600, monitor_mode=False):
             if ser.in_waiting:
                 response = ser.readline().decode('utf-8').strip()
                 print(f"Resposta do Arduino: {response}")
+            else:
+                print("Nenhuma resposta recebida do Arduino.")
             
             # Fechar a conexão
             ser.close()
@@ -121,6 +168,7 @@ def send_command(port, command, baudrate=9600, monitor_mode=False):
         
     except serial.SerialException as e:
         print(f"Erro ao conectar ou enviar comando: {e}")
+        print("Verifique se o Arduino está conectado e se a porta está correta.")
     except KeyboardInterrupt:
         print("\nInterrompido pelo usuário.")
         if 'ser' in locals() and ser.is_open:

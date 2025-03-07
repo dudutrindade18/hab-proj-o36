@@ -76,6 +76,7 @@ python main.py
 - `--arduino`: Habilitar comunicação com Arduino
 - `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
 - `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
+- `--allow-no-arduino`: Permitir execução mesmo se o Arduino não estiver respondendo
 
 ### Exemplos
 
@@ -97,6 +98,11 @@ python main.py --arduino --port /dev/ttyUSB0
 Usar câmera externa e intervalo de predição mais rápido:
 ```
 python main.py --camera 1 --interval 0.2 --arduino
+```
+
+Permitir execução mesmo sem Arduino respondendo:
+```
+python main.py --arduino --allow-no-arduino
 ```
 
 ## Testando a Comunicação com o Arduino
@@ -153,10 +159,22 @@ Este modo é útil para:
 - Testar diferentes comandos em sequência
 - Monitorar as respostas do Arduino em tempo real
 
+**Nota**: O modo de monitoramento só funciona se um Arduino real estiver conectado e respondendo. O script verificará isso antes de entrar no modo de monitoramento.
+
+## Verificação de Conexão do Arduino
+
+O sistema agora verifica se o Arduino está realmente conectado e respondendo, não apenas se a porta serial pode ser aberta. Isso é feito enviando um comando "ping" e esperando uma resposta específica.
+
+Se o Arduino não estiver respondendo:
+- O script de teste não entrará no modo de monitoramento
+- O programa principal não iniciará, a menos que você use a opção `--allow-no-arduino`
+
+Isso evita situações em que o programa parece estar funcionando, mas na verdade não há um Arduino conectado ou o Arduino não está executando o código correto.
+
 ## Funcionamento
 
 1. O programa carrega o modelo de IA especificado.
-2. Se a opção `--arduino` for fornecida, tenta conectar ao Arduino.
+2. Se a opção `--arduino` for fornecida, tenta conectar ao Arduino e verifica se ele está respondendo.
 3. Inicializa a câmera e começa a capturar frames.
 4. Em intervalos regulares, o frame atual é processado pelo modelo de IA.
 5. O resultado da classificação é exibido na tela junto com a confiança da predição.
@@ -186,6 +204,7 @@ Para que o Arduino receba corretamente os comandos:
 O código do Arduino está configurado para:
 - Inicializar a comunicação serial com taxa de 9600 baud
 - Piscar o LED 3 vezes na inicialização para indicar que está pronto
+- Responder a comandos "ping" para verificação de conexão
 - Ligar o LED embutido quando receber o comando "1" (classificação "Bom")
 - Desligar o LED embutido quando receber o comando "0" (classificação "Ruim")
 - Enviar confirmação via serial após cada ação
@@ -224,8 +243,8 @@ Métodos principais:
 Classe para gerenciar a comunicação serial com o Arduino.
 
 Métodos principais:
-- `__init__(port, baudrate, timeout)`: Inicializa a comunicação serial
-- `connect()`: Conecta ao Arduino
+- `__init__(port, baudrate, timeout, require_arduino)`: Inicializa a comunicação serial
+- `connect()`: Conecta ao Arduino e verifica se ele está respondendo
 - `disconnect()`: Desconecta do Arduino
 - `send_command(command)`: Envia um comando para o Arduino
 - `send_label_command(label)`: Envia um comando baseado na label do modelo
