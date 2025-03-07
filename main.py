@@ -8,6 +8,7 @@ import os
 import argparse
 from hab_proj.model import AIModel
 from hab_proj.camera import Camera
+from hab_proj.serial_comm import ArduinoSerial
 
 def parse_args():
     """
@@ -33,6 +34,19 @@ def parse_args():
     parser.add_argument('--no-fps', action='store_true',
                         help='Não exibir FPS na tela')
     
+    # Argumentos para comunicação serial com Arduino
+    parser.add_argument('--no-arduino', action='store_true',
+                        help='Desabilitar comunicação com Arduino (por padrão, a comunicação está habilitada)')
+    
+    parser.add_argument('--port', type=str, default=None,
+                        help='Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.')
+    
+    parser.add_argument('--baudrate', type=int, default=9600,
+                        help='Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)')
+    
+    parser.add_argument('--allow-no-arduino', action='store_true',
+                        help='Permitir execução mesmo se o Arduino não estiver respondendo')
+    
     return parser.parse_args()
 
 def main():
@@ -55,12 +69,53 @@ def main():
         model = AIModel(args.model, args.labels)
         print("Modelo carregado com sucesso!")
         
-        # Inicializar a câmera com o modelo
-        camera = Camera(camera_id=args.camera, model=model)
+        # Inicializar a comunicação serial com Arduino (por padrão)
+        arduino_serial = None
+        if not args.no_arduino:
+            print("Inicializando comunicação com Arduino...")
+            arduino_serial = ArduinoSerial(
+                port=args.port,
+                baudrate=args.baudrate,
+                require_arduino=not args.allow_no_arduino
+            )
+            
+            # Tentar conectar ao Arduino
+            if arduino_serial.connect():
+                if arduino_serial.arduino_responding:
+                    print(f"Arduino conectado e respondendo na porta {arduino_serial.port}")
+                else:
+                    if args.allow_no_arduino:
+                        print("Aviso: Arduino não está respondendo, mas continuando mesmo assim porque --allow-no-arduino foi especificado.")
+                    else:
+                        print("Erro: Arduino não está respondendo. Use --allow-no-arduino para continuar mesmo assim.")
+                        return
+            else:
+                print("Erro: Não foi possível conectar ao Arduino.")
+                if not args.allow_no_arduino:
+                    print("Use --no-arduino para executar sem Arduino ou --allow-no-arduino para continuar mesmo sem conexão.")
+                    return
+                else:
+                    arduino_serial = None
+        else:
+            print("Comunicação com Arduino desabilitada.")
+        
+        # Inicializar a câmera com o modelo e Arduino
+        camera = Camera(
+            camera_id=args.camera, 
+            model=model,
+            arduino_serial=arduino_serial
+        )
         
         # Executar a câmera com o modelo
         print(f"Iniciando câmera {args.camera} com classificação em tempo real...")
+        if arduino_serial and arduino_serial.arduino_responding:
+            print("Comunicação com Arduino ativada. Enviando comandos baseados nas predições:")
+            print("  - 'Bom' -> Envia '1'")
+            print("  - 'Ruim' -> Envia '0'")
+            print("  - 'Nada' -> Não envia nada")
+        
         print("Pressione 'q' para sair.")
+        
         camera.run_with_model(
             display_fps=not args.no_fps,
             prediction_interval=args.interval

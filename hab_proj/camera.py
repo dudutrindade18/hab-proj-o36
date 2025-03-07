@@ -9,16 +9,18 @@ import time
 class Camera:
     """Classe para gerenciar a câmera e integrar com o modelo de IA."""
     
-    def __init__(self, camera_id=0, model=None):
+    def __init__(self, camera_id=0, model=None, arduino_serial=None):
         """
         Inicializa a câmera.
         
         Args:
             camera_id (int): ID da câmera (0 geralmente é a webcam integrada)
             model (AIModel, optional): Instância do modelo de IA
+            arduino_serial (ArduinoSerial, optional): Instância da comunicação serial com Arduino
         """
         self.camera_id = camera_id
         self.model = model
+        self.arduino_serial = arduino_serial
         self.cap = None
         
     def start(self):
@@ -76,6 +78,10 @@ class Camera:
         current_prediction = "Aguardando..."
         current_confidence = 0.0
         
+        # Conectar ao Arduino se disponível
+        if self.arduino_serial:
+            self.arduino_serial.connect()
+        
         try:
             while True:
                 frame = self.read_frame()
@@ -97,6 +103,10 @@ class Camera:
                     if self.model is not None:
                         current_prediction, current_confidence, _ = self.model.predict(frame)
                         last_prediction_time = time.time()
+                        
+                        # Enviar comando para o Arduino baseado na predição
+                        if self.arduino_serial:
+                            self.arduino_serial.send_label_command(current_prediction)
                 
                 # Exibir informações na tela
                 self._display_info(frame, current_prediction, current_confidence, fps if display_fps else None)
@@ -110,6 +120,9 @@ class Camera:
                     
         finally:
             self.stop()
+            # Desconectar do Arduino se estiver conectado
+            if self.arduino_serial:
+                self.arduino_serial.disconnect()
     
     def _display_info(self, frame, prediction, confidence, fps=None):
         """
@@ -132,6 +145,13 @@ class Camera:
         prediction_text = f"Predição: {prediction}"
         confidence_text = f"Confiança: {confidence:.2f}"
         
+        # Adicionar informação sobre o comando enviado ao Arduino
+        arduino_text = ""
+        if self.arduino_serial and prediction == "Bom":
+            arduino_text = "Arduino: Enviando 1"
+        elif self.arduino_serial and prediction == "Ruim":
+            arduino_text = "Arduino: Enviando 0"
+        
         # Posição do texto
         y_pos = 30
         
@@ -145,6 +165,10 @@ class Camera:
         # Adicionar textos
         y_pos = add_text_with_background(prediction_text, y_pos)
         y_pos = add_text_with_background(confidence_text, y_pos)
+        
+        # Adicionar texto do Arduino se disponível
+        if arduino_text:
+            y_pos = add_text_with_background(arduino_text, y_pos)
         
         # Adicionar FPS se disponível
         if fps is not None:
