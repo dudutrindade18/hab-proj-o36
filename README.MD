@@ -49,6 +49,11 @@ hab-proj-o36/
    - Instalar todas as dependências necessárias
    - Tornar o arquivo main.py executável
 
+3. Ative o ambiente virtual:
+   ```
+   source venv/bin/activate
+   ```
+
 ## Uso
 
 Execute o programa principal:
