@@ -5,6 +5,7 @@ Módulo para gerenciar a comunicação serial com o Arduino.
 import serial
 import time
 import logging
+import re
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -12,6 +13,16 @@ logger = logging.getLogger(__name__)
 
 class ArduinoSerial:
     """Classe para gerenciar a comunicação serial com o Arduino."""
+    
+    # IDs de produto e fornecedor comuns para placas Arduino
+    ARDUINO_VID_PID_PATTERNS = [
+        # Arduino Uno, Nano, etc.
+        r'VID:PID=2341:00[0-9a-fA-F]{2}',  # Arduino oficial
+        r'VID:PID=1A86:7523',              # CH340 (clones)
+        r'VID:PID=0403:6001',              # FTDI (alguns clones)
+        r'VID:PID=0403:6015',              # FTDI (alguns clones)
+        r'VID:PID=1A86:55D4',              # CH9102 (alguns clones)
+    ]
     
     def __init__(self, port=None, baudrate=9600, timeout=1, require_arduino=True):
         """
@@ -51,6 +62,7 @@ class ArduinoSerial:
                     return False
             
             # Conecta à porta serial
+            logger.info(f"Tentando conectar à porta {self.port}...")
             self.serial_conn = serial.Serial(
                 port=self.port,
                 baudrate=self.baudrate,
@@ -105,20 +117,22 @@ class ArduinoSerial:
         # Enviar um comando de ping
         logger.info("Verificando conexão com o Arduino...")
         try:
-            self.serial_conn.write(b"ping\n")
-            self.serial_conn.flush()
-            
-            # Aguardar resposta
-            start_time = time.time()
-            while time.time() - start_time < 3:  # Timeout de 3 segundos
-                if self.serial_conn.in_waiting:
-                    response = self.serial_conn.readline().decode('utf-8').strip()
-                    if "Arduino pronto" in response:
-                        logger.info("Arduino conectado e respondendo!")
-                        return True
-                    else:
-                        logger.info(f"Resposta recebida: {response}")
-                time.sleep(0.1)
+            # Enviar múltiplos pings para aumentar a chance de resposta
+            for _ in range(3):
+                self.serial_conn.write(b"ping\n")
+                self.serial_conn.flush()
+                
+                # Aguardar resposta
+                start_time = time.time()
+                while time.time() - start_time < 1:  # Timeout de 1 segundo por tentativa
+                    if self.serial_conn.in_waiting:
+                        response = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
+                        if "Arduino pronto" in response:
+                            logger.info("Arduino conectado e respondendo!")
+                            return True
+                        else:
+                            logger.info(f"Resposta recebida: {response}")
+                    time.sleep(0.1)
             
             logger.warning("Arduino não respondeu ao ping. A porta serial está aberta, mas o Arduino pode não estar conectado ou não estar executando o código correto.")
             return False
@@ -158,7 +172,7 @@ class ArduinoSerial:
             if self.arduino_responding:
                 time.sleep(0.5)
                 if self.serial_conn.in_waiting:
-                    response = self.serial_conn.readline().decode('utf-8').strip()
+                    response = self.serial_conn.readline().decode('utf-8', errors='ignore').strip()
                     logger.debug(f"Resposta do Arduino: {response}")
             
             return True
@@ -203,16 +217,49 @@ class ArduinoSerial:
         # Lista todas as portas seriais disponíveis
         ports = list(serial.tools.list_ports.comports())
         
-        # Procura por portas que possam ser um Arduino
+        if not ports:
+            logger.error("Nenhuma porta serial encontrada no sistema.")
+            return None
+            
+        logger.info(f"Portas seriais disponíveis: {len(ports)}")
         for port in ports:
-            # Arduino geralmente tem "Arduino" ou "CH340" ou "FTDI" na descrição
-            if "Arduino" in port.description or "CH340" in port.description or "FTDI" in port.description:
-                logger.info(f"Arduino encontrado na porta {port.device}")
+            logger.info(f"- {port.device}: {port.description} (hwid: {port.hwid})")
+        
+        # Estratégia 1: Procurar por portas com descrições ou hwid que contenham "Arduino"
+        for port in ports:
+            if "arduino" in port.description.lower() or "arduino" in port.hwid.lower():
+                logger.info(f"Arduino encontrado na porta {port.device} (descrição/hwid contém 'Arduino')")
                 return port.device
-                
-        # Se não encontrou nenhuma porta com descrição de Arduino, tenta a primeira disponível
-        if ports:
-            logger.warning(f"Arduino não identificado explicitamente. Usando a primeira porta disponível: {ports[0].device}")
+        
+        # Estratégia 2: Procurar por VID:PID conhecidos de Arduino
+        for port in ports:
+            for pattern in self.ARDUINO_VID_PID_PATTERNS:
+                if re.search(pattern, port.hwid, re.IGNORECASE):
+                    logger.info(f"Arduino encontrado na porta {port.device} (VID:PID corresponde a um Arduino)")
+                    return port.device
+        
+        # Estratégia 3: Procurar por portas com nomes comuns de Arduino
+        arduino_port_patterns = [
+            r'(cu|tty)\.usbmodem\d+',  # macOS/Linux Arduino
+            r'(cu|tty)\.wchusbserial\d+',  # macOS/Linux CH340
+            r'(cu|tty)\.SLAB_USBtoUART',  # macOS/Linux CP210x
+            r'COM\d+',  # Windows
+        ]
+        
+        for port in ports:
+            for pattern in arduino_port_patterns:
+                if re.match(pattern, port.device):
+                    logger.info(f"Possível Arduino encontrado na porta {port.device} (nome da porta corresponde a um padrão Arduino)")
+                    return port.device
+        
+        # Estratégia 4: Se tudo falhar e houver apenas uma porta, use-a
+        if len(ports) == 1:
+            logger.warning(f"Arduino não identificado explicitamente, mas apenas uma porta está disponível: {ports[0].device}")
             return ports[0].device
             
+        # Se chegamos aqui, não conseguimos identificar o Arduino
+        logger.error("Não foi possível identificar uma porta Arduino. Portas disponíveis:")
+        for port in ports:
+            logger.error(f"- {port.device}: {port.description} (hwid: {port.hwid})")
+        
         return None 

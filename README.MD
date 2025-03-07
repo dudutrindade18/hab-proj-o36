@@ -63,6 +63,8 @@ Execute o programa principal:
 python main.py
 ```
 
+Por padrão, o programa tentará se conectar ao Arduino. Se você não tiver um Arduino conectado, use a opção `--no-arduino`.
+
 ### Opções de Linha de Comando
 
 #### Opções Gerais
@@ -73,76 +75,84 @@ python main.py
 - `--no-fps`: Não exibir FPS na tela
 
 #### Opções para Arduino
-- `--arduino`: Habilitar comunicação com Arduino
+- `--no-arduino`: Desabilitar comunicação com Arduino (por padrão, a comunicação está habilitada)
 - `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
 - `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
 - `--allow-no-arduino`: Permitir execução mesmo se o Arduino não estiver respondendo
 
 ### Exemplos
 
-Executar com a webcam padrão:
+Executar com a webcam padrão (com Arduino, se disponível):
 ```
 python main.py
 ```
 
-Executar com comunicação Arduino:
+Executar sem Arduino:
 ```
-python main.py --arduino
+python main.py --no-arduino
 ```
 
 Especificar porta do Arduino:
 ```
-python main.py --arduino --port /dev/ttyUSB0
+python main.py --port /dev/ttyUSB0
 ```
 
 Usar câmera externa e intervalo de predição mais rápido:
 ```
-python main.py --camera 1 --interval 0.2 --arduino
+python main.py --camera 1 --interval 0.2
 ```
 
 Permitir execução mesmo sem Arduino respondendo:
 ```
-python main.py --arduino --allow-no-arduino
+python main.py --allow-no-arduino
 ```
 
 ## Testando a Comunicação com o Arduino
 
 Para testar a comunicação com o Arduino sem executar todo o sistema de classificação, use o script `test_arduino.py`:
 
+### Listar Portas Disponíveis
+
+Para listar todas as portas seriais disponíveis e identificar o Arduino:
+
 ```
-python test_arduino.py [comando] [opções]
+python test_arduino.py --list-ports
 ```
 
-### Argumentos
+### Enviar Comandos
 
-- `comando`: Comando a ser enviado (0: Desligar LED, 1: Ligar LED)
+Para enviar comandos para o Arduino:
 
-### Opções
+```
+python test_arduino.py --command [0|1] [opções]
+```
+
+#### Opções
 
 - `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
 - `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
 - `--monitor`: Ativar modo de monitoramento contínuo da porta serial
 
-### Exemplos
+#### Exemplos
 
 Ligar o LED (enviar comando 1):
 ```
-python test_arduino.py 1
+python test_arduino.py --command 1
 ```
 
 Desligar o LED (enviar comando 0):
 ```
-python test_arduino.py 0
+python test_arduino.py --command 0
 ```
 
 Especificar a porta manualmente:
 ```
-python test_arduino.py 1 --port /dev/ttyUSB0
+python test_arduino.py --command 1 --port /dev/ttyUSB0
 ```
 
 Monitorar a porta serial continuamente:
 ```
-python test_arduino.py 1 --monitor
+python test_arduino.py --command 1 --monitor
 ```
 
 ### Modo de Monitoramento
@@ -171,10 +181,21 @@ Se o Arduino não estiver respondendo:
 
 Isso evita situações em que o programa parece estar funcionando, mas na verdade não há um Arduino conectado ou o Arduino não está executando o código correto.
 
+## Detecção Automática de Portas
+
+O sistema usa várias estratégias para detectar automaticamente a porta do Arduino:
+
+1. Procura por portas com "Arduino" na descrição ou no hardware ID
+2. Procura por VID:PID (identificadores de produto e fornecedor) conhecidos de Arduino
+3. Procura por nomes de portas que seguem padrões comuns de Arduino
+4. Se houver apenas uma porta disponível, usa-a como último recurso
+
+Isso torna o sistema mais robusto em diferentes sistemas operacionais e com diferentes tipos de placas Arduino.
+
 ## Funcionamento
 
 1. O programa carrega o modelo de IA especificado.
-2. Se a opção `--arduino` for fornecida, tenta conectar ao Arduino e verifica se ele está respondendo.
+2. Por padrão, tenta conectar ao Arduino e verifica se ele está respondendo (a menos que `--no-arduino` seja especificado).
 3. Inicializa a câmera e começa a capturar frames.
 4. Em intervalos regulares, o frame atual é processado pelo modelo de IA.
 5. O resultado da classificação é exibido na tela junto com a confiança da predição.

@@ -11,6 +11,17 @@ import serial
 import serial.tools.list_ports
 import threading
 import sys
+import re
+
+# IDs de produto e fornecedor comuns para placas Arduino
+ARDUINO_VID_PID_PATTERNS = [
+    # Arduino Uno, Nano, etc.
+    r'VID:PID=2341:00[0-9a-fA-F]{2}',  # Arduino oficial
+    r'VID:PID=1A86:7523',              # CH340 (clones)
+    r'VID:PID=0403:6001',              # FTDI (alguns clones)
+    r'VID:PID=0403:6015',              # FTDI (alguns clones)
+    r'VID:PID=1A86:55D4',              # CH9102 (alguns clones)
+]
 
 def find_arduino_port():
     """
@@ -22,18 +33,51 @@ def find_arduino_port():
     # Lista todas as portas seriais disponíveis
     ports = list(serial.tools.list_ports.comports())
     
-    # Procura por portas que possam ser um Arduino
+    if not ports:
+        print("Nenhuma porta serial encontrada no sistema.")
+        return None
+        
+    print(f"Portas seriais disponíveis: {len(ports)}")
     for port in ports:
-        # Arduino geralmente tem "Arduino" ou "CH340" ou "FTDI" na descrição
-        if "Arduino" in port.description or "CH340" in port.description or "FTDI" in port.description:
-            print(f"Arduino encontrado na porta {port.device}")
+        print(f"- {port.device}: {port.description} (hwid: {port.hwid})")
+    
+    # Estratégia 1: Procurar por portas com descrições ou hwid que contenham "Arduino"
+    for port in ports:
+        if "arduino" in port.description.lower() or "arduino" in port.hwid.lower():
+            print(f"Arduino encontrado na porta {port.device} (descrição/hwid contém 'Arduino')")
             return port.device
-            
-    # Se não encontrou nenhuma porta com descrição de Arduino, tenta a primeira disponível
-    if ports:
-        print(f"Arduino não identificado explicitamente. Usando a primeira porta disponível: {ports[0].device}")
+    
+    # Estratégia 2: Procurar por VID:PID conhecidos de Arduino
+    for port in ports:
+        for pattern in ARDUINO_VID_PID_PATTERNS:
+            if re.search(pattern, port.hwid, re.IGNORECASE):
+                print(f"Arduino encontrado na porta {port.device} (VID:PID corresponde a um Arduino)")
+                return port.device
+    
+    # Estratégia 3: Procurar por portas com nomes comuns de Arduino
+    arduino_port_patterns = [
+        r'(cu|tty)\.usbmodem\d+',  # macOS/Linux Arduino
+        r'(cu|tty)\.wchusbserial\d+',  # macOS/Linux CH340
+        r'(cu|tty)\.SLAB_USBtoUART',  # macOS/Linux CP210x
+        r'COM\d+',  # Windows
+    ]
+    
+    for port in ports:
+        for pattern in arduino_port_patterns:
+            if re.match(pattern, port.device):
+                print(f"Possível Arduino encontrado na porta {port.device} (nome da porta corresponde a um padrão Arduino)")
+                return port.device
+    
+    # Estratégia 4: Se tudo falhar e houver apenas uma porta, use-a
+    if len(ports) == 1:
+        print(f"Arduino não identificado explicitamente, mas apenas uma porta está disponível: {ports[0].device}")
         return ports[0].device
         
+    # Se chegamos aqui, não conseguimos identificar o Arduino
+    print("Não foi possível identificar uma porta Arduino. Portas disponíveis:")
+    for port in ports:
+        print(f"- {port.device}: {port.description} (hwid: {port.hwid})")
+    
     return None
 
 def serial_reader(ser, stop_event):
@@ -48,7 +92,7 @@ def serial_reader(ser, stop_event):
     try:
         while not stop_event.is_set():
             if ser.in_waiting:
-                line = ser.readline().decode('utf-8').strip()
+                line = ser.readline().decode('utf-8', errors='ignore').strip()
                 print(f"Arduino: {line}")
             time.sleep(0.1)  # Pequena pausa para não sobrecarregar a CPU
     except Exception as e:
@@ -69,19 +113,24 @@ def verify_arduino_connection(ser):
     
     # Enviar um comando de ping
     print("Verificando conexão com o Arduino...")
-    ser.write(b"ping\n")
     
-    # Aguardar resposta
-    start_time = time.time()
-    while time.time() - start_time < 3:  # Timeout de 3 segundos
-        if ser.in_waiting:
-            response = ser.readline().decode('utf-8').strip()
-            if "Arduino pronto" in response:
-                print("Arduino conectado e respondendo!")
-                return True
-            else:
-                print(f"Resposta recebida: {response}")
-        time.sleep(0.1)
+    # Enviar múltiplos pings para aumentar a chance de resposta
+    for attempt in range(3):
+        print(f"Tentativa {attempt+1}/3...")
+        ser.write(b"ping\n")
+        ser.flush()
+        
+        # Aguardar resposta
+        start_time = time.time()
+        while time.time() - start_time < 1:  # Timeout de 1 segundo por tentativa
+            if ser.in_waiting:
+                response = ser.readline().decode('utf-8', errors='ignore').strip()
+                if "Arduino pronto" in response:
+                    print("Arduino conectado e respondendo!")
+                    return True
+                else:
+                    print(f"Resposta recebida: {response}")
+            time.sleep(0.1)
     
     print("AVISO: Arduino não respondeu ao ping. A porta serial está aberta, mas o Arduino pode não estar conectado ou não estar executando o código correto.")
     return False
@@ -98,6 +147,7 @@ def send_command(port, command, baudrate=9600, monitor_mode=False):
     """
     try:
         # Conectar à porta serial
+        print(f"Tentando conectar à porta {port}...")
         ser = serial.Serial(port, baudrate, timeout=2)
         print(f"Porta serial {port} aberta com baudrate {baudrate}")
         
@@ -127,7 +177,7 @@ def send_command(port, command, baudrate=9600, monitor_mode=False):
             # Aguardar e ler a resposta
             time.sleep(0.5)
             if ser.in_waiting:
-                response = ser.readline().decode('utf-8').strip()
+                response = ser.readline().decode('utf-8', errors='ignore').strip()
                 print(f"Resposta do Arduino: {response}")
             else:
                 print("Nenhuma resposta recebida do Arduino.")
@@ -179,8 +229,16 @@ def main():
     """Função principal."""
     parser = argparse.ArgumentParser(description='Teste de comunicação com Arduino')
     
-    parser.add_argument('command', type=int, choices=[0, 1],
-                        help='Comando a ser enviado (0: Desligar LED, 1: Ligar LED)')
+    # Cria um grupo de argumentos mutuamente exclusivos
+    group = parser.add_mutually_exclusive_group(required=True)
+    
+    # Adiciona o comando como um argumento opcional dentro do grupo
+    group.add_argument('--command', type=int, choices=[0, 1],
+                      help='Comando a ser enviado (0: Desligar LED, 1: Ligar LED)')
+    
+    # Adiciona a opção --list-ports ao grupo mutuamente exclusivo
+    group.add_argument('--list-ports', action='store_true',
+                      help='Listar todas as portas seriais disponíveis e sair')
     
     parser.add_argument('--port', type=str, default=None,
                         help='Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.')
@@ -192,6 +250,11 @@ def main():
                         help='Ativar modo de monitoramento contínuo da porta serial')
     
     args = parser.parse_args()
+    
+    # Se a opção --list-ports foi especificada, apenas lista as portas e sai
+    if args.list_ports:
+        find_arduino_port()
+        return
     
     # Se a porta não foi especificada, tenta encontrar automaticamente
     if args.port is None:

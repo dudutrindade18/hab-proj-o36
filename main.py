@@ -35,8 +35,8 @@ def parse_args():
                         help='Não exibir FPS na tela')
     
     # Argumentos para comunicação serial com Arduino
-    parser.add_argument('--arduino', action='store_true',
-                        help='Habilitar comunicação com Arduino')
+    parser.add_argument('--no-arduino', action='store_true',
+                        help='Desabilitar comunicação com Arduino (por padrão, a comunicação está habilitada)')
     
     parser.add_argument('--port', type=str, default=None,
                         help='Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.')
@@ -69,9 +69,9 @@ def main():
         model = AIModel(args.model, args.labels)
         print("Modelo carregado com sucesso!")
         
-        # Inicializar a comunicação serial com Arduino se solicitado
+        # Inicializar a comunicação serial com Arduino (por padrão)
         arduino_serial = None
-        if args.arduino:
+        if not args.no_arduino:
             print("Inicializando comunicação com Arduino...")
             arduino_serial = ArduinoSerial(
                 port=args.port,
@@ -91,7 +91,13 @@ def main():
                         return
             else:
                 print("Erro: Não foi possível conectar ao Arduino.")
-                return
+                if not args.allow_no_arduino:
+                    print("Use --no-arduino para executar sem Arduino ou --allow-no-arduino para continuar mesmo sem conexão.")
+                    return
+                else:
+                    arduino_serial = None
+        else:
+            print("Comunicação com Arduino desabilitada.")
         
         # Inicializar a câmera com o modelo e Arduino
         camera = Camera(
