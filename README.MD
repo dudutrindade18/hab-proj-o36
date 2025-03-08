@@ -1,271 +1,271 @@
-# HAB Project - Sistema de Classificação com IA
+# HAB Project - AI Classification System
 
-Esse projeto integra uma câmera com um modelo de IA para classificação em tempo real. O sistema captura imagens da webcam, processa-as usando um modelo de IA treinado e exibe os resultados na tela. Também suporta comunicação serial com Arduino para enviar comandos baseados nas classificações.
+This project integrates a camera with an AI model for real-time classification. The system captures images from the webcam, processes them using a trained AI model, and displays the results on screen. It also supports serial communication with Arduino to send commands based on the classifications.
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
 hab-proj-o36/
-├── arduino_code/          # Pasta com o código para o Arduino
-│   └── hab_proj_receiver.ino  # Código do Arduino para receber comandos
-├── converted_keras/       # Pasta com o modelo de IA
-│   ├── keras_model.h5     # Arquivo do modelo Keras
-│   └── labels.txt         # Arquivo com as labels do modelo
-├── hab_proj/              # Pacote principal do projeto
-│   ├── __init__.py        # Arquivo de inicialização do pacote
-│   ├── camera.py          # Módulo para gerenciar a câmera
-│   ├── model.py           # Módulo para gerenciar o modelo de IA
-│   └── serial_comm.py     # Módulo para comunicação serial com Arduino
-├── main.py                # Ponto de entrada da aplicação
-├── requirements.txt       # Dependências do projeto
-├── setup.sh               # Script de configuração
-├── test_arduino.py        # Script para testar a comunicação com o Arduino
-└── webcam.py              # Script original da webcam (mantido para referência)
+├── arduino_code/          # Folder with Arduino code
+│   └── hab_proj_receiver.ino  # Arduino code to receive commands
+├── converted_keras/       # Folder with the AI model
+│   ├── keras_model.h5     # Keras model file
+│   └── labels.txt         # Model labels file
+├── hab_proj/              # Main project package
+│   ├── __init__.py        # Package initialization file
+│   ├── camera.py          # Module for managing the camera
+│   ├── model.py           # Module for managing the AI model
+│   └── serial_comm.py     # Module for Arduino serial communication
+├── main.py                # Application entry point
+├── requirements.txt       # Project dependencies
+├── setup.sh               # Setup script
+├── test_arduino.py        # Script for testing Arduino communication
+└── webcam.py              # Original webcam script (kept for reference)
 ```
 
-## Requisitos
+## Requirements
 
 - Python 3.9
 - OpenCV
 - TensorFlow
 - NumPy
 - Pillow
-- PySerial (para comunicação com Arduino)
+- PySerial (for Arduino communication)
 
-## Instalação
+## Installation
 
-1. Clone o repositório:
+1. Clone the repository:
    ```
    git clone <https://github.com/dudutrindade18/hab-proj-o36>
    cd hab-proj-o36
    ```
 
-2. Execute o script de configuração:
+2. Run the setup script:
    ```
    ./setup.sh
    ```
-   Este script irá:
-   - Criar um ambiente virtual Python
-   - Ativar o ambiente virtual
-   - Instalar todas as dependências necessárias
-   - Tornar o arquivo main.py executável
+   This script will:
+   - Create a Python virtual environment
+   - Activate the virtual environment
+   - Install all necessary dependencies
+   - Make the main.py file executable
 
-3. Ative o ambiente virtual:
+3. Activate the virtual environment:
    ```
    source venv/bin/activate
    ```
 
-## Uso
+## Usage
 
-Execute o programa principal:
+Run the main program:
 
 ```
 python main.py
 ```
 
-Por padrão, o programa tentará se conectar ao Arduino. Se você não tiver um Arduino conectado, use a opção `--no-arduino`.
+By default, the program will try to connect to Arduino. If you don't have an Arduino connected, use the `--no-arduino` option.
 
-### Opções de Linha de Comando
+### Command Line Options
 
-#### Opções Gerais
-- `--camera`: ID da câmera (padrão: 0, geralmente a webcam integrada)
-- `--model`: Caminho para o arquivo do modelo (padrão: converted_keras/keras_model.h5)
-- `--labels`: Caminho para o arquivo de labels (padrão: converted_keras/labels.txt)
-- `--interval`: Intervalo em segundos entre predições (padrão: 0.5)
-- `--no-fps`: Não exibir FPS na tela
+#### General Options
+- `--camera`: Camera ID (default: 0, usually the built-in webcam)
+- `--model`: Path to the model file (default: converted_keras/keras_model.h5)
+- `--labels`: Path to the labels file (default: converted_keras/labels.txt)
+- `--interval`: Interval in seconds between predictions (default: 0.5)
+- `--no-fps`: Do not display FPS on screen
 
-#### Opções para Arduino
-- `--no-arduino`: Desabilitar comunicação com Arduino (por padrão, a comunicação está habilitada)
-- `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
-- `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
-- `--allow-no-arduino`: Permitir execução mesmo se o Arduino não estiver respondendo
+#### Arduino Options
+- `--no-arduino`: Disable Arduino communication (by default, communication is enabled)
+- `--port`: Arduino serial port (e.g., /dev/ttyUSB0, COM3). If not specified, will try to detect automatically.
+- `--baudrate`: Baud rate for serial communication (default: 9600)
+- `--allow-no-arduino`: Allow execution even if Arduino is not responding
 
-### Exemplos
+### Examples
 
-Executar com a webcam padrão (com Arduino, se disponível):
+Run with default webcam (with Arduino, if available):
 ```
 python main.py
 ```
 
-Executar sem Arduino:
+Run without Arduino:
 ```
 python main.py --no-arduino
 ```
 
-Especificar porta do Arduino:
+Specify Arduino port:
 ```
 python main.py --port /dev/ttyUSB0
 ```
 
-Usar câmera externa e intervalo de predição mais rápido:
+Use external camera and faster prediction interval:
 ```
 python main.py --camera 1 --interval 0.2
 ```
 
-Permitir execução mesmo sem Arduino respondendo:
+Allow execution even without Arduino responding:
 ```
 python main.py --allow-no-arduino
 ```
 
-## Testando a Comunicação com o Arduino
+## Testing Arduino Communication
 
-Para testar a comunicação com o Arduino sem executar todo o sistema de classificação, use o script `test_arduino.py`:
+To test Arduino communication without running the entire classification system, use the `test_arduino.py` script:
 
-### Listar Portas Disponíveis
+### List Available Ports
 
-Para listar todas as portas seriais disponíveis e identificar o Arduino:
+To list all available serial ports and identify Arduino:
 
 ```
 python test_arduino.py --list-ports
 ```
 
-### Enviar Comandos
+### Send Commands
 
-Para enviar comandos para o Arduino:
+To send commands to Arduino:
 
 ```
-python test_arduino.py --command [0|1] [opções]
+python test_arduino.py --command [0|1] [options]
 ```
 
-#### Opções
+#### Options
 
-- `--port`: Porta serial do Arduino (ex: /dev/ttyUSB0, COM3). Se não especificada, tentará detectar automaticamente.
-- `--baudrate`: Taxa de transmissão (baud rate) para comunicação serial (padrão: 9600)
-- `--monitor`: Ativar modo de monitoramento contínuo da porta serial
+- `--port`: Arduino serial port (e.g., /dev/ttyUSB0, COM3). If not specified, will try to detect automatically.
+- `--baudrate`: Baud rate for serial communication (default: 9600)
+- `--monitor`: Activate continuous monitoring mode for the serial port
 
-#### Exemplos
+#### Examples
 
-Ligar o LED (enviar comando 1):
+Turn ON the LED (send command 1):
 ```
 python test_arduino.py --command 1
 ```
 
-Desligar o LED (enviar comando 0):
+Turn OFF the LED (send command 0):
 ```
 python test_arduino.py --command 0
 ```
 
-Especificar a porta manualmente:
+Specify port manually:
 ```
 python test_arduino.py --command 1 --port /dev/ttyUSB0
 ```
 
-Monitorar a porta serial continuamente:
+Monitor the serial port continuously:
 ```
 python test_arduino.py --command 1 --monitor
 ```
 
-### Modo de Monitoramento
+### Monitoring Mode
 
-Quando você usa a opção `--monitor`, o script entra em um modo interativo que:
+When you use the `--monitor` option, the script enters an interactive mode that:
 
-1. Envia o comando inicial especificado
-2. Monitora continuamente todas as mensagens enviadas pelo Arduino
-3. Permite enviar comandos adicionais digitando '0' ou '1' seguido de Enter
-4. Continua até que você pressione Ctrl+C ou digite 'exit'
+1. Sends the initial specified command
+2. Continuously monitors all messages sent by Arduino
+3. Allows sending additional commands by typing '0' or '1' followed by Enter
+4. Continues until you press Ctrl+C or type 'exit'
 
-Este modo é útil para:
-- Depurar a comunicação com o Arduino
-- Testar diferentes comandos em sequência
-- Monitorar as respostas do Arduino em tempo real
+This mode is useful for:
+- Debugging Arduino communication
+- Testing different commands in sequence
+- Monitoring Arduino responses in real-time
 
-**Nota**: O modo de monitoramento só funciona se um Arduino real estiver conectado e respondendo. O script verificará isso antes de entrar no modo de monitoramento.
+**Note**: Monitoring mode only works if a real Arduino is connected and responding. The script will check this before entering monitoring mode.
 
-## Verificação de Conexão do Arduino
+## Arduino Connection Verification
 
-O sistema agora verifica se o Arduino está realmente conectado e respondendo, não apenas se a porta serial pode ser aberta. Isso é feito enviando um comando "ping" e esperando uma resposta específica.
+The system now verifies if Arduino is actually connected and responding, not just if the serial port can be opened. This is done by sending a "ping" command and waiting for a specific response.
 
-Se o Arduino não estiver respondendo:
-- O script de teste não entrará no modo de monitoramento
-- O programa principal não iniciará, a menos que você use a opção `--allow-no-arduino`
+If Arduino is not responding:
+- The test script will not enter monitoring mode
+- The main program will not start, unless you use the `--allow-no-arduino` option
 
-Isso evita situações em que o programa parece estar funcionando, mas na verdade não há um Arduino conectado ou o Arduino não está executando o código correto.
+This prevents situations where the program appears to be working, but there's actually no Arduino connected or the Arduino is not running the correct code.
 
-## Detecção Automática de Portas
+## Automatic Port Detection
 
-O sistema usa várias estratégias para detectar automaticamente a porta do Arduino:
+The system uses several strategies to automatically detect the Arduino port:
 
-1. Procura por portas com "Arduino" na descrição ou no hardware ID
-2. Procura por VID:PID (identificadores de produto e fornecedor) conhecidos de Arduino
-3. Procura por nomes de portas que seguem padrões comuns de Arduino
-4. Se houver apenas uma porta disponível, usa-a como último recurso
+1. Looks for ports with "Arduino" in the description or hardware ID
+2. Looks for known Arduino VID:PIDs (vendor and product identifiers)
+3. Looks for ports with common Arduino name patterns
+4. If there's only one port available, uses it as a last resort
 
-Isso torna o sistema mais robusto em diferentes sistemas operacionais e com diferentes tipos de placas Arduino.
+This makes the system more robust across different operating systems and with different types of Arduino boards.
 
-## Funcionamento
+## How It Works
 
-1. O programa carrega o modelo de IA especificado.
-2. Por padrão, tenta conectar ao Arduino e verifica se ele está respondendo (a menos que `--no-arduino` seja especificado).
-3. Inicializa a câmera e começa a capturar frames.
-4. Em intervalos regulares, o frame atual é processado pelo modelo de IA.
-5. O resultado da classificação é exibido na tela junto com a confiança da predição.
-6. Se conectado ao Arduino, envia comandos baseados na classificação:
-   - "Bom" -> Envia "1"
-   - "Ruim" -> Envia "0"
-   - "Nada" -> Não envia nada
-7. Pressione 'q' para sair do programa.
+1. The program loads the specified AI model.
+2. By default, it tries to connect to Arduino and verifies if it's responding (unless `--no-arduino` is specified).
+3. Initializes the camera and starts capturing frames.
+4. At regular intervals, the current frame is processed by the AI model.
+5. The classification result is displayed on screen along with the prediction confidence.
+6. If connected to Arduino, sends commands based on the classification:
+   - "Good" -> Sends '1'
+   - "Bad" -> Sends '0'
+   - "Nothing" -> Sends nothing
+7. Press 'q' to quit the program.
 
-## Comunicação com Arduino
+## Arduino Communication
 
-O sistema envia comandos para o Arduino baseados nas classificações do modelo:
+The system sends commands to Arduino based on the model's classifications:
 
-- Quando a classificação é "Bom", envia o valor "1"
-- Quando a classificação é "Ruim", envia o valor "0"
-- Quando a classificação é "Nada", não envia nenhum comando
+- When classification is "Good", sends value "1"
+- When classification is "Bad", sends value "0"
+- When classification is "Nothing", sends nothing
 
-### Configuração do Arduino
+### Arduino Setup
 
-Para que o Arduino receba corretamente os comandos:
+For Arduino to correctly receive commands:
 
-1. Abra o arquivo `arduino_code/hab_proj_receiver.ino` no Arduino IDE
-2. Faça upload do código para o seu Arduino
-3. Conecte o Arduino ao computador via USB
-4. Execute a aplicação Python (main.py).
+1. Open the `arduino_code/hab_proj_receiver.ino` file in Arduino IDE
+2. Upload the code to your Arduino
+3. Connect Arduino to computer via USB
+4. Run the Python application (main.py)
 
-O código do Arduino está configurado para:
-- Inicializar a comunicação serial com taxa de 9600 baud
-- Piscar o LED 3 vezes na inicialização para indicar que está pronto
-- Responder a comandos "ping" para verificação de conexão
-- Ligar o LED embutido quando receber o comando "1" (classificação "Bom")
-- Desligar o LED embutido quando receber o comando "0" (classificação "Ruim")
-- Enviar confirmação via serial após cada ação
+The Arduino code is configured to:
+- Initialize serial communication at 9600 baud
+- Blink the LED 3 times at startup to indicate it's ready
+- Respond to "ping" commands for connection verification
+- Turn ON the built-in LED when receiving command "1" (classification "Good")
+- Turn OFF the built-in LED when receiving command "0" (classification "Bad")
+- Send confirmation via serial after each action
 
-## Classes do Modelo
+## Model Classes
 
-O modelo atual classifica as imagens em três categorias:
-- 0: Bom
-- 1: Ruim
-- 2: Nada
+The current model classifies images into three categories:
+- 0: Good
+- 1: Bad
+- 2: Nothing
 
-## Desenvolvimento
+## Development
 
-### Módulos Principais
+### Main Modules
 
 #### hab_proj.model.AIModel
 
-Classe responsável por carregar e utilizar o modelo de IA para classificação.
+Class responsible for loading and using the AI model for classification.
 
-Métodos principais:
-- `__init__(model_path, labels_path)`: Inicializa o modelo
-- `predict(image)`: Realiza a predição em uma imagem
+Main methods:
+- `__init__(model_path, labels_path)`: Initializes the model
+- `predict(image)`: Makes a prediction on an image
 
 #### hab_proj.camera.Camera
 
-Classe para gerenciar a câmera e integrar com o modelo de IA.
+Class for managing the camera and integrating with the AI model.
 
-Métodos principais:
-- `__init__(camera_id, model, arduino_serial)`: Inicializa a câmera
-- `start()`: Inicia a câmera
-- `stop()`: Libera os recursos da câmera
-- `run_with_model(display_fps, prediction_interval)`: Executa a câmera com o modelo de IA
+Main methods:
+- `__init__(camera_id, model, arduino_serial)`: Initializes the camera
+- `start()`: Starts the camera
+- `stop()`: Releases camera resources
+- `run_with_model(display_fps, prediction_interval)`: Runs the camera with the AI model
 
 #### hab_proj.serial_comm.ArduinoSerial
 
-Classe para gerenciar a comunicação serial com o Arduino.
+Class for managing serial communication with Arduino.
 
-Métodos principais:
-- `__init__(port, baudrate, timeout, require_arduino)`: Inicializa a comunicação serial
-- `connect()`: Conecta ao Arduino e verifica se ele está respondendo
-- `disconnect()`: Desconecta do Arduino
-- `send_command(command)`: Envia um comando para o Arduino
-- `send_label_command(label)`: Envia um comando baseado na label do modelo
+Main methods:
+- `__init__(port, baudrate, timeout, require_arduino)`: Initializes serial communication
+- `connect()`: Connects to Arduino and verifies if it's responding
+- `disconnect()`: Disconnects from Arduino
+- `send_command(command)`: Sends a command to Arduino
+- `send_label_command(label)`: Sends a command based on the model's label
