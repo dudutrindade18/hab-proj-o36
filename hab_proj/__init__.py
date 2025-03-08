@@ -1,5 +1,5 @@
 """
-HAB Project - Sistema de Classificação com IA
+HAB Project - AI Classification System
 """
 
 __version__ = '0.1.0' 

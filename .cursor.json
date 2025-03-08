@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "name": "English Only Code",
+      "description": "All code, comments, logs, and documentation must be written in English",
+      "pattern": {
+        "regex": "([\\/\\/|#|\"\"\"|\\/\\*].*[áàâãéèêíìîóòôõúùûçÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ])|([a-zA-Z_][a-zA-Z0-9_]*\\s*=\\s*['\"][^'\"]*[áàâãéèêíìîóòôõúùûçÁÀÂÃÉÈÊÍÌÎÓÒÔÕÚÙÛÇ][^'\"]*['\"])",
+        "flags": "g"
+      },
+      "severity": "warning",
+      "message": "Please use English for all code, comments, and string literals"
+    }
+  ]
+} 

@@ -1,5 +1,5 @@
 """
-Módulo para carregar e utilizar o modelo de IA para classificação.
+Module for loading and using the AI model for classification.
 """
 
 import os
@@ -9,31 +9,31 @@ from PIL import Image
 import cv2
 
 class AIModel:
-    """Classe para gerenciar o modelo de IA para classificação."""
+    """Class to manage the AI model for classification."""
     
     def __init__(self, model_path, labels_path):
         """
-        Inicializa o modelo de IA.
+        Initialize the AI model.
         
         Args:
-            model_path (str): Caminho para o arquivo do modelo (.h5)
-            labels_path (str): Caminho para o arquivo de labels (.txt)
+            model_path (str): Path to the model file (.h5)
+            labels_path (str): Path to the labels file (.txt)
         """
         self.model = tf.keras.models.load_model(model_path)
         self.labels = self._load_labels(labels_path)
         
-        # Obtém as dimensões de entrada esperadas pelo modelo
-        self.input_shape = self.model.input_shape[1:3]  # (altura, largura)
+        # Get the expected input dimensions for the model
+        self.input_shape = self.model.input_shape[1:3]  # (height, width)
         
     def _load_labels(self, labels_path):
         """
-        Carrega as labels do modelo a partir de um arquivo de texto.
+        Load model labels from a text file.
         
         Args:
-            labels_path (str): Caminho para o arquivo de labels
+            labels_path (str): Path to the labels file
             
         Returns:
-            dict: Dicionário mapeando índices para nomes de classes
+            dict: Dictionary mapping indices to class names
         """
         labels = {}
         with open(labels_path, 'r') as file:
@@ -46,48 +46,48 @@ class AIModel:
     
     def preprocess_image(self, image):
         """
-        Pré-processa a imagem para o formato esperado pelo modelo.
+        Preprocess the image to the format expected by the model.
         
         Args:
-            image: Imagem OpenCV (BGR)
+            image: OpenCV image (BGR)
             
         Returns:
-            np.array: Imagem pré-processada
+            np.array: Preprocessed image
         """
-        # Converter BGR para RGB (OpenCV usa BGR, TensorFlow espera RGB)
+        # Convert BGR to RGB (OpenCV uses BGR, TensorFlow expects RGB)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
-        # Redimensionar para o tamanho esperado pelo modelo
+        # Resize to the expected size for the model
         pil_image = Image.fromarray(image_rgb)
         resized_image = pil_image.resize(self.input_shape)
         
-        # Normalizar os valores dos pixels para [0, 1]
+        # Normalize pixel values to [0, 1]
         img_array = np.array(resized_image) / 255.0
         
-        # Adicionar dimensão de batch
+        # Add batch dimension
         return np.expand_dims(img_array, axis=0)
     
     def predict(self, image):
         """
-        Realiza a predição em uma imagem.
+        Make a prediction on an image.
         
         Args:
-            image: Imagem OpenCV (BGR)
+            image: OpenCV image (BGR)
             
         Returns:
-            tuple: (classe_predita, confiança, todas_as_probabilidades)
+            tuple: (predicted_class, confidence, all_probabilities)
         """
-        # Pré-processar a imagem
+        # Preprocess the image
         processed_image = self.preprocess_image(image)
         
-        # Fazer a predição
+        # Make the prediction
         predictions = self.model.predict(processed_image)[0]
         
-        # Obter a classe com maior probabilidade
+        # Get the class with the highest probability
         predicted_class_index = np.argmax(predictions)
         confidence = predictions[predicted_class_index]
         
-        # Obter o nome da classe
-        class_name = self.labels.get(predicted_class_index, f"Classe {predicted_class_index}")
+        # Get the class name
+        class_name = self.labels.get(predicted_class_index, f"Class {predicted_class_index}")
         
         return class_name, confidence, predictions 

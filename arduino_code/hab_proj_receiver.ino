@@ -1,21 +1,21 @@
 /*
- * HAB Project - Receptor Arduino
+ * HAB Project - Arduino Receiver
  * 
- * Este código recebe comandos da aplicação Python via porta serial:
- * - '1': Liga o LED (quando a classificação é "Bom")
- * - '0': Desliga o LED (quando a classificação é "Ruim")
- * - 'ping': Comando para verificar se o Arduino está conectado
+ * This code receives commands from the Python application via serial port:
+ * - '1': Turns ON the LED (when classification is "Good")
+ * - '0': Turns OFF the LED (when classification is "Bad")
+ * - 'ping': Command to verify if Arduino is connected
  * 
- * Conexão:
- * - Conecte o Arduino ao computador via USB
- * - Execute a aplicação Python com a opção --arduino
+ * Connection:
+ * - Connect Arduino to computer via USB
+ * - Run the Python application
  */
 
 void setup() {
-  Serial.begin(9600);              // Iniciar comunicação serial com a mesma taxa de transmissão (baud rate)
-  pinMode(LED_BUILTIN, OUTPUT);    // Configurar LED embutido como saída
+  Serial.begin(9600);              // Initialize serial communication with the same baud rate
+  pinMode(LED_BUILTIN, OUTPUT);    // Configure built-in LED as output
   
-  // Piscar o LED para indicar que o Arduino está pronto
+  // Blink LED to indicate Arduino is ready
   for (int i = 0; i < 3; i++) {
     digitalWrite(LED_BUILTIN, HIGH);
     delay(100);
@@ -23,28 +23,28 @@ void setup() {
     delay(100);
   }
   
-  Serial.println("Arduino pronto para receber comandos!");
+  Serial.println("Arduino ready to receive commands!");
 }
 
 void loop() {
-  if (Serial.available() > 0) {          // Verificar se há dados disponíveis
-    // Ler a string completa até o newline
+  if (Serial.available() > 0) {          // Check if data is available
+    // Read the complete string until newline
     String input = Serial.readStringUntil('\n');
-    input.trim();  // Remover espaços em branco e caracteres de nova linha
+    input.trim();  // Remove whitespace and newline characters
     
-    // Verificar se é um comando de ping
+    // Check if it's a ping command
     if (input == "ping") {
-      Serial.println("Arduino pronto para receber comandos!");
+      Serial.println("Arduino ready to receive commands!");
     }
-    // Verificar se é o comando para ligar o LED
+    // Check if it's the command to turn ON the LED
     else if (input == "1") {
-      digitalWrite(LED_BUILTIN, HIGH);   // Ligar LED se receber '1'
-      Serial.println("LED ON");          // Enviar confirmação
+      digitalWrite(LED_BUILTIN, HIGH);   // Turn ON LED if '1' is received
+      Serial.println("LED ON");          // Send confirmation
     } 
-    // Verificar se é o comando para desligar o LED
+    // Check if it's the command to turn OFF the LED
     else if (input == "0") {
-      digitalWrite(LED_BUILTIN, LOW);    // Desligar LED se receber '0'
-      Serial.println("LED OFF");         // Enviar confirmação
+      digitalWrite(LED_BUILTIN, LOW);    // Turn OFF LED if '0' is received
+      Serial.println("LED OFF");         // Send confirmation
     }
   }
 }
