@@ -49,7 +49,23 @@ sudo apt-get install -y \
     xz-utils \
     tk-dev \
     libffi-dev \
-    liblzma-dev
+    liblzma-dev \
+    libgtk2.0-dev \
+    pkg-config \
+    cmake \
+    libgtk-3-dev \
+    python3-dev \
+    python3-numpy
+
+# Rebuild and install OpenCV with GUI support
+echo "Building OpenCV with GUI support..."
+# Remove existing OpenCV packages
+sudo apt-get remove -y python3-opencv
+sudo apt-get autoremove -y
+
+# Install OpenCV from pip with GUI support
+python -m pip install --upgrade pip
+python -m pip install opencv-python
 
 # Install pyenv
 echo "Installing pyenv..."

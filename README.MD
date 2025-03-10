@@ -35,6 +35,29 @@ hab-proj-o36/
 
 ## Installation
 
+### Prerequisites
+
+Before you begin, make sure you have Git installed on your system. If not, you can install it using the following commands:
+
+#### For Debian/Ubuntu/Raspberry Pi OS:
+```bash
+sudo apt-get update
+sudo apt-get install -y git
+```
+
+#### For macOS (using Homebrew):
+```bash
+brew install git
+```
+
+#### For Windows:
+Download and install Git from [git-scm.com](https://git-scm.com/download/win)
+
+To verify Git is installed correctly, run:
+```bash
+git --version
+```
+
 ### Regular Systems
 
 1. Clone the repository:
@@ -59,6 +82,29 @@ hab-proj-o36/
    ```
 
 ### Raspberry Pi
+
+#### Fresh Raspberry Pi Setup
+
+If you're starting with a fresh Raspberry Pi installation, follow these steps first:
+
+1. Update your system:
+   ```
+   sudo apt-get update
+   sudo apt-get upgrade -y
+   ```
+
+2. Install Git:
+   ```
+   sudo apt-get install -y git
+   ```
+
+3. (Optional) Configure Git:
+   ```
+   git config --global user.name "Your Name"
+   git config --global user.email "your.email@example.com"
+   ```
+
+#### Project Installation
 
 1. Clone the repository:
    ```
