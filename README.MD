@@ -20,6 +20,8 @@ hab-proj-o36/
 ├── requirements.txt       # Project dependencies
 ├── setup.sh               # Setup script for regular systems
 ├── setup_raspberry.sh     # Setup script for Raspberry Pi
+├── setup_autostart.sh     # Script to set up autostart on boot
+├── hab_proj_autostart.service # Systemd service file for autostart
 ├── test_arduino.py        # Script for testing Arduino communication
 └── webcam.py              # Original webcam script (kept for reference)
 ```
@@ -274,6 +276,64 @@ If you're running the Raspberry Pi without a display (headless mode):
    ```
    python main.py --headless --low-power
    ```
+
+### Setting Up Autostart on Boot
+
+To make the application start automatically when the Raspberry Pi boots up:
+
+1. Make the autostart setup script executable:
+   ```
+   chmod +x setup_autostart.sh
+   ```
+
+2. Run the setup script:
+   ```
+   ./setup_autostart.sh
+   ```
+
+3. Follow the prompts:
+   - Choose whether to run in headless mode (recommended for systems without display)
+   - Add any additional command line arguments (e.g., `--low-power`)
+   - Choose whether to start the service immediately
+
+4. Reboot to test the autostart functionality:
+   ```
+   sudo reboot
+   ```
+
+#### Managing the Autostart Service
+
+- Check service status:
+  ```
+  sudo systemctl status hab_proj_autostart.service
+  ```
+
+- View logs if there are issues:
+  ```
+  sudo journalctl -u hab_proj_autostart.service
+  ```
+
+- Stop the service:
+  ```
+  sudo systemctl stop hab_proj_autostart.service
+  ```
+
+- Disable autostart (service won't start on boot):
+  ```
+  sudo systemctl disable hab_proj_autostart.service
+  ```
+
+- Re-enable autostart:
+  ```
+  sudo systemctl enable hab_proj_autostart.service
+  ```
+
+- Modify service configuration:
+  ```
+  sudo nano /etc/systemd/system/hab_proj_autostart.service
+  sudo systemctl daemon-reload
+  sudo systemctl restart hab_proj_autostart.service
+  ```
 
 ## Testing Arduino Communication
 
