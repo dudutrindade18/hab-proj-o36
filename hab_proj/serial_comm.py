@@ -6,6 +6,8 @@ import serial
 import time
 import logging
 import re
+import os
+import platform
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -225,6 +227,16 @@ class ArduinoSerial:
         for port in ports:
             logger.info(f"- {port.device}: {port.description} (hwid: {port.hwid})")
         
+        # Check if running on Raspberry Pi
+        is_raspberry_pi = False
+        if platform.system() == 'Linux':
+            if os.path.exists('/proc/device-tree/model'):
+                with open('/proc/device-tree/model', 'r') as f:
+                    model = f.read()
+                    if 'raspberry pi' in model.lower():
+                        is_raspberry_pi = True
+                        logger.info("Running on Raspberry Pi")
+        
         # Strategy 1: Look for ports with descriptions or hwid containing "Arduino"
         for port in ports:
             if "arduino" in port.description.lower() or "arduino" in port.hwid.lower():
@@ -246,9 +258,17 @@ class ArduinoSerial:
             r'COM\d+',  # Windows
         ]
         
+        # Add Raspberry Pi specific patterns
+        if is_raspberry_pi:
+            arduino_port_patterns.extend([
+                r'ttyACM\d+',  # Raspberry Pi/Linux Arduino
+                r'ttyUSB\d+',  # Raspberry Pi/Linux USB-Serial
+                r'ttyAMA\d+',  # Raspberry Pi serial port
+            ])
+        
         for port in ports:
             for pattern in arduino_port_patterns:
-                if re.match(pattern, port.device):
+                if re.search(pattern, os.path.basename(port.device), re.IGNORECASE):
                     logger.info(f"Possible Arduino found on port {port.device} (port name matches an Arduino pattern)")
                     return port.device
         

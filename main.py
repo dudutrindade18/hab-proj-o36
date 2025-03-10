@@ -6,6 +6,7 @@ Main application that integrates camera and AI model.
 
 import os
 import argparse
+import platform
 from hab_proj.model import AIModel
 from hab_proj.camera import Camera
 from hab_proj.serial_comm import ArduinoSerial
@@ -47,6 +48,19 @@ def parse_args():
     parser.add_argument('--allow-no-arduino', action='store_true',
                         help='Allow execution even if Arduino is not responding')
     
+    # Raspberry Pi specific options
+    parser.add_argument('--width', type=int, default=640,
+                        help='Camera capture width (default: 640)')
+    
+    parser.add_argument('--height', type=int, default=480,
+                        help='Camera capture height (default: 480)')
+    
+    parser.add_argument('--low-power', action='store_true',
+                        help='Enable low power mode for Raspberry Pi (reduces resolution and prediction frequency)')
+    
+    parser.add_argument('--headless', action='store_true',
+                        help='Run in headless mode (no GUI, useful for Raspberry Pi without display)')
+    
     return parser.parse_args()
 
 def main():
@@ -54,10 +68,28 @@ def main():
     # Parse arguments
     args = parse_args()
     
+    # Check if running on Raspberry Pi
+    is_raspberry_pi = 'arm' in platform.machine().lower()
+    if is_raspberry_pi:
+        print("Running on Raspberry Pi")
+        
+        # Apply low power mode if requested
+        if args.low_power:
+            print("Low power mode enabled")
+            args.width = 320
+            args.height = 240
+            args.interval = 1.0
+    
     # Check if model files exist
     if not os.path.exists(args.model):
-        print(f"Error: Model file not found: {args.model}")
-        return
+        # If using TFLite and .h5 file doesn't exist, check for .tflite file
+        tflite_path = args.model.replace('.h5', '.tflite')
+        if os.path.exists(tflite_path):
+            args.model = tflite_path
+            print(f"Using TFLite model: {args.model}")
+        else:
+            print(f"Error: Model file not found: {args.model}")
+            return
     
     if not os.path.exists(args.labels):
         print(f"Error: Labels file not found: {args.labels}")
@@ -106,6 +138,10 @@ def main():
             arduino_serial=arduino_serial
         )
         
+        # Set camera resolution
+        camera.width = args.width
+        camera.height = args.height
+        
         # Run the camera with the model
         print(f"Starting camera {args.camera} with real-time classification...")
         if arduino_serial and arduino_serial.arduino_responding:
@@ -118,11 +154,14 @@ def main():
         
         camera.run_with_model(
             display_fps=not args.no_fps,
-            prediction_interval=args.interval
+            prediction_interval=args.interval,
+            headless=args.headless
         )
         
     except Exception as e:
         print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main() 

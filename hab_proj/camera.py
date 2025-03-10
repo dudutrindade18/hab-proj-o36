@@ -5,6 +5,7 @@ Module for managing the camera and integrating with the AI model.
 import cv2
 import numpy as np
 import time
+import os
 
 class Camera:
     """Class for managing the camera and integrating with the AI model."""
@@ -22,15 +23,45 @@ class Camera:
         self.model = model
         self.arduino_serial = arduino_serial
         self.cap = None
+        self.width = 640
+        self.height = 480
         
     def start(self):
         """Start the camera."""
-        self.cap = cv2.VideoCapture(self.camera_id)
+        # Try different camera backends if the default doesn't work
+        # This is especially useful on Raspberry Pi
+        backends = [cv2.CAP_ANY]
         
-        if not self.cap.isOpened():
+        # On Raspberry Pi, try specific backends
+        if os.path.exists('/proc/device-tree/model') and 'raspberry pi' in open('/proc/device-tree/model').read().lower():
+            backends.extend([
+                cv2.CAP_V4L,       # Video for Linux
+                cv2.CAP_V4L2,      # Video for Linux 2
+                cv2.CAP_GSTREAMER  # GStreamer
+            ])
+        
+        # Try each backend until one works
+        for backend in backends:
+            try:
+                self.cap = cv2.VideoCapture(self.camera_id, backend)
+                if self.cap.isOpened():
+                    break
+            except Exception as e:
+                print(f"Backend {backend} failed: {e}")
+        
+        if not self.cap or not self.cap.isOpened():
             raise RuntimeError("Error: Could not access the camera.")
-            
-        print(f"Camera {self.camera_id} started. Press 'q' to quit.")
+        
+        # Set resolution
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        
+        # Get actual resolution (may be different from requested)
+        actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"Camera {self.camera_id} started with resolution: {actual_width}x{actual_height}")
+        print("Press 'q' to quit.")
+        
         return self.cap.isOpened()
     
     def stop(self):
@@ -57,13 +88,14 @@ class Camera:
             
         return frame
     
-    def run_with_model(self, display_fps=True, prediction_interval=0.5):
+    def run_with_model(self, display_fps=True, prediction_interval=0.5, headless=False):
         """
         Run the camera with the AI model for real-time classification.
         
         Args:
             display_fps (bool): Whether to display FPS on screen
             prediction_interval (float): Interval in seconds between predictions
+            headless (bool): Whether to run in headless mode (no GUI)
         """
         if self.model is None:
             raise ValueError("AI model not provided.")
@@ -107,17 +139,27 @@ class Camera:
                         # Send command to Arduino based on prediction
                         if self.arduino_serial:
                             self.arduino_serial.send_label_command(current_prediction)
+                        
+                        # Print prediction in headless mode
+                        if headless:
+                            print(f"Prediction: {current_prediction}, Confidence: {current_confidence:.2f}")
                 
-                # Display information on screen
-                self._display_info(frame, current_prediction, current_confidence, fps if display_fps else None)
-                
-                # Display the frame
-                cv2.imshow('Camera with AI', frame)
-                
-                # Check if 'q' key was pressed to quit
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                # Display information on screen if not in headless mode
+                if not headless:
+                    self._display_info(frame, current_prediction, current_confidence, fps if display_fps else None)
                     
+                    # Display the frame
+                    cv2.imshow('Camera with AI', frame)
+                    
+                    # Check if 'q' key was pressed to quit
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
+                else:
+                    # In headless mode, check for keyboard interrupt
+                    time.sleep(0.01)  # Small sleep to prevent CPU overuse
+                    
+        except KeyboardInterrupt:
+            print("Interrupted by user.")
         finally:
             self.stop()
             # Disconnect from Arduino if connected

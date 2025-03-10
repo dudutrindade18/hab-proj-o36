@@ -18,21 +18,24 @@ hab-proj-o36/
 │   └── serial_comm.py     # Module for Arduino serial communication
 ├── main.py                # Application entry point
 ├── requirements.txt       # Project dependencies
-├── setup.sh               # Setup script
+├── setup.sh               # Setup script for regular systems
+├── setup_raspberry.sh     # Setup script for Raspberry Pi
 ├── test_arduino.py        # Script for testing Arduino communication
 └── webcam.py              # Original webcam script (kept for reference)
 ```
 
 ## Requirements
 
-- Python 3.9
+- Python 3.9 (managed by pyenv)
 - OpenCV
-- TensorFlow
+- TensorFlow (regular systems) or TensorFlow Lite (Raspberry Pi)
 - NumPy
 - Pillow
 - PySerial (for Arduino communication)
 
 ## Installation
+
+### Regular Systems
 
 1. Clone the repository:
    ```
@@ -53,6 +56,44 @@ hab-proj-o36/
 3. Activate the virtual environment:
    ```
    source venv/bin/activate
+   ```
+
+### Raspberry Pi
+
+1. Clone the repository:
+   ```
+   git clone <https://github.com/dudutrindade18/hab-proj-o36>
+   cd hab-proj-o36
+   ```
+
+2. Run the Raspberry Pi setup script:
+   ```
+   chmod +x setup_raspberry.sh
+   ./setup_raspberry.sh
+   ```
+   This script will:
+   - Install system dependencies required for OpenCV and TensorFlow Lite
+   - Install and configure pyenv for Python version management
+   - Install the Python version specified in `.python-version` (or default to Python 3.9.0)
+   - Create a Python virtual environment
+   - Install Python dependencies
+   - Set up permissions for camera and serial ports
+   - Convert the Keras model to TensorFlow Lite format if needed
+   - Make the main.py file executable
+
+3. Restart your shell or source your profile to activate pyenv:
+   ```
+   source ~/.bashrc  # or ~/.zshrc if using zsh
+   ```
+
+4. Activate the virtual environment:
+   ```
+   source venv/bin/activate
+   ```
+
+5. Log out and log back in for permission changes to take effect (or reboot):
+   ```
+   sudo reboot
    ```
 
 ## Usage
@@ -80,6 +121,12 @@ By default, the program will try to connect to Arduino. If you don't have an Ard
 - `--baudrate`: Baud rate for serial communication (default: 9600)
 - `--allow-no-arduino`: Allow execution even if Arduino is not responding
 
+#### Raspberry Pi Specific Options
+- `--width`: Camera capture width (default: 640)
+- `--height`: Camera capture height (default: 480)
+- `--low-power`: Enable low power mode (reduces resolution to 320x240 and prediction frequency)
+- `--headless`: Run in headless mode (no GUI, useful for Raspberry Pi without display)
+
 ### Examples
 
 Run with default webcam (with Arduino, if available):
@@ -106,6 +153,81 @@ Allow execution even without Arduino responding:
 ```
 python main.py --allow-no-arduino
 ```
+
+Run on Raspberry Pi in low power mode:
+```
+python main.py --low-power
+```
+
+Run on Raspberry Pi without display:
+```
+python main.py --headless
+```
+
+## Raspberry Pi Tips
+
+### Python Version Management
+
+The project uses pyenv to manage Python versions. The setup script will:
+
+1. Install pyenv if not already installed
+2. Read the Python version from the `.python-version` file
+3. Install that specific Python version
+4. Set it as the local Python version for the project
+
+If you need to change the Python version:
+```
+pyenv install 3.9.0  # Install a specific version
+pyenv local 3.9.0    # Set it as the local version for this project
+```
+
+### Camera Setup
+
+1. Enable the camera interface:
+   ```
+   sudo raspi-config
+   ```
+   Navigate to "Interface Options" > "Camera" and enable it.
+
+2. If using a USB webcam, make sure it's compatible with Raspberry Pi. Most USB webcams should work.
+
+3. For better performance, consider reducing the resolution:
+   ```
+   python main.py --width 320 --height 240
+   ```
+
+### Running Without Display
+
+If you're running the Raspberry Pi without a display (headless mode):
+
+1. Use the `--headless` option:
+   ```
+   python main.py --headless
+   ```
+
+2. You can still see the predictions in the terminal output.
+
+3. For remote access, consider using SSH with X forwarding:
+   ```
+   ssh -X pi@your_raspberry_pi_ip
+   ```
+
+### Performance Optimization
+
+1. Use the `--low-power` option for better performance:
+   ```
+   python main.py --low-power
+   ```
+
+2. Increase the prediction interval to reduce CPU usage:
+   ```
+   python main.py --interval 1.0
+   ```
+
+3. If you're only interested in the Arduino control, use both headless and low-power modes:
+   ```
+   python main.py --headless --low-power
+   ```
 
 ## Testing Arduino Communication
 
@@ -257,7 +379,7 @@ Main methods:
 - `__init__(camera_id, model, arduino_serial)`: Initializes the camera
 - `start()`: Starts the camera
 - `stop()`: Releases camera resources
-- `run_with_model(display_fps, prediction_interval)`: Runs the camera with the AI model
+- `run_with_model(display_fps, prediction_interval, headless)`: Runs the camera with the AI model
 
 #### hab_proj.serial_comm.ArduinoSerial
 
