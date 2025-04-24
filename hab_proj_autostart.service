@@ -1,0 +1,17 @@
+[Unit]
+Description=HAB Project AI Classification System
+After=network.target
+
+[Service]
+Type=simple
+User=hab-proj5
+WorkingDirectory=/home/hab-proj5/Desktop/hab-proj-o36
+ExecStart=/home/hab-proj5/Desktop/hab-proj-o36/venv/bin/python /home/hab-proj5/Desktop/hab-proj-o36/main.py --headless
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=hab-proj
+
+[Install]
+WantedBy=multi-user.target 
