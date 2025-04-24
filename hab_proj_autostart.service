@@ -6,11 +6,13 @@ After=network.target
 Type=simple
 User=hab-proj5
 WorkingDirectory=/home/hab-proj5/Desktop/hab-proj-o36
+Environment="PYTHONPATH=/home/hab-proj5/Desktop/hab-proj-o36"
+Environment="PATH=/home/hab-proj5/Desktop/hab-proj-o36/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 ExecStart=/home/hab-proj5/Desktop/hab-proj-o36/venv/bin/python /home/hab-proj5/Desktop/hab-proj-o36/main.py --headless
 Restart=on-failure
 RestartSec=5
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=hab-proj
 
 [Install]
