@@ -2,10 +2,11 @@
  * HAB Project - Ventilator Control
  * 
  * This code combines the HAB Project receiver functionality with ventilator/dimmer control:
- * - '1': Turns ON the ventilator at high power
  * - '0': Turns OFF the ventilator
- * - '2': Medium power (optional)
- * - '3': Low power (optional)
+ * - '1': Turns ON the ventilator at the last set intensity
+ * - '2': Set LOW intensity (firing delay = 6000)
+ * - '3': Set MEDIUM intensity (firing delay = 4000)
+ * - '4': Set MAXIMUM intensity (firing delay = 2000)
  * - 'ping': Command to verify if Arduino is connected
  * 
  * Hardware:
@@ -16,32 +17,33 @@
 
 // Zero-crossing detection
 volatile boolean zeroCrossDetected = false;
-int firingDelay = 8000; // em microssegundos (8000 = desligado, 0 = potência máxima)
-boolean isOn = false;   // Estado atual do ventilador
+int currentFiringDelay = 6000; // Initial delay set to low (6000 = low power, 0 = max power)
+int firingDelay = 8000;        // Actual firing delay (8000 = off, currentFiringDelay = on)
+boolean isOn = false;          // Current state of the ventilator
 
-// Pinos
-const int TRIAC_PIN = 2;        // Pino conectado ao gate do TRIAC
-const int ZC_INTERRUPT_PIN = 3; // Pino conectado ao detector de zero-crossing
-const int LED_PIN = LED_BUILTIN; // LED para feedback visual
+// Pins
+const int TRIAC_PIN = 2;        // Pin connected to TRIAC gate
+const int ZC_INTERRUPT_PIN = 3; // Pin connected to zero-crossing detector
+const int LED_PIN = LED_BUILTIN; // LED for visual feedback
 
-// Configurações de segurança
+// Safety settings
 unsigned long lastZeroCrossTime = 0;
-const unsigned long TIMEOUT = 1000; // 1 segundo de timeout
+const unsigned long TIMEOUT = 1000; // 1 second timeout
 
 void setup() {
-  // Configuração dos pinos
+  // Pin configuration
   pinMode(TRIAC_PIN, OUTPUT);
   digitalWrite(TRIAC_PIN, LOW);
   pinMode(ZC_INTERRUPT_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   
-  // Configuração da interrupção de zero-crossing
+  // Zero-crossing interrupt setup
   attachInterrupt(digitalPinToInterrupt(ZC_INTERRUPT_PIN), zeroCrossISR, RISING);
   
-  // Inicialização da comunicação serial
+  // Serial communication initialization
   Serial.begin(9600);
   
-  // Sinalização visual de inicialização
+  // Visual startup signal
   for (int i = 0; i < 3; i++) {
     digitalWrite(LED_PIN, HIGH);
     delay(100);
@@ -50,24 +52,27 @@ void setup() {
   }
   
   Serial.println("Arduino ready to receive commands!");
-  Serial.println("Commands: '0' = OFF, '1' = HIGH power, '2' = MEDIUM power, '3' = LOW power");
+  Serial.println("Commands: '0' = OFF, '1' = ON, '2' = LOW intensity, '3' = MEDIUM intensity, '4' = MAXIMUM intensity");
 }
 
 void loop() {
-  // Processamento de comandos seriais
+  // Process serial commands
   processSerialCommands();
   
-  // Controle do TRIAC baseado na detecção de zero-crossing
-  if (zeroCrossDetected && isOn) {
+  // Update actual firing delay based on state
+  firingDelay = isOn ? currentFiringDelay : 8000; // 8000 = OFF
+  
+  // TRIAC control based on zero-crossing detection
+  if (zeroCrossDetected) {
     delayMicroseconds(firingDelay);
     digitalWrite(TRIAC_PIN, HIGH);
-    delayMicroseconds(10); // pulso curto no gate
+    delayMicroseconds(10); // short pulse to gate
     digitalWrite(TRIAC_PIN, LOW);
     zeroCrossDetected = false;
     lastZeroCrossTime = millis();
   }
   
-  // Verificação de segurança - se não houver pulsos de zero-crossing por um certo tempo, desliga
+  // Safety check - if no zero-crossing pulses for a certain time, turn off
   if (isOn && (millis() - lastZeroCrossTime > TIMEOUT)) {
     isOn = false;
     Serial.println("Safety timeout: No zero-crossing detected. Turning OFF.");
@@ -75,55 +80,71 @@ void loop() {
   }
 }
 
-// Função de interrupção para detecção de zero-crossing
+// Interrupt function for zero-crossing detection
 void zeroCrossISR() {
   zeroCrossDetected = true;
 }
 
-// Função para processar comandos recebidos via serial
+// Function to process commands received via serial
 void processSerialCommands() {
   if (Serial.available() > 0) {
-    // Ler a string completa até encontrar newline
+    // Read the complete string until newline
     String input = Serial.readStringUntil('\n');
-    input.trim();  // Remover espaços e caracteres de newline
+    input.trim();  // Remove spaces and newline characters
     
-    // Verificar comando ping
+    // Check ping command
     if (input == "ping") {
       Serial.println("Arduino ready to receive commands!");
     }
-    // Comando para ligar em potência máxima
+    // Command to turn ON with current intensity
     else if (input == "1") {
-      // Liga na potência máxima
-      firingDelay = 0;
       isOn = true;
-      lastZeroCrossTime = millis(); // Reset do timer de segurança
-      digitalWrite(LED_PIN, HIGH);  // Liga o LED para feedback visual
-      Serial.println("Ventilator ON: HIGH power");
+      lastZeroCrossTime = millis(); // Reset safety timer
+      digitalWrite(LED_PIN, HIGH);  // Turn on LED for visual feedback
+      
+      // Report current intensity
+      String intensity;
+      if (currentFiringDelay >= 6000) intensity = "LOW";
+      else if (currentFiringDelay >= 4000) intensity = "MEDIUM";
+      else intensity = "MAXIMUM";
+      
+      Serial.println("Ventilator ON: " + intensity + " intensity");
     }
-    // Comando para ligar em potência média
-    else if (input == "2") {
-      // Liga na potência média
-      firingDelay = 3000;
-      isOn = true;
-      lastZeroCrossTime = millis(); // Reset do timer de segurança
-      digitalWrite(LED_PIN, HIGH);  // Liga o LED para feedback visual
-      Serial.println("Ventilator ON: MEDIUM power");
-    }
-    // Comando para ligar em potência baixa
-    else if (input == "3") {
-      // Liga na potência baixa
-      firingDelay = 6000;
-      isOn = true;
-      lastZeroCrossTime = millis(); // Reset do timer de segurança
-      digitalWrite(LED_PIN, HIGH);  // Liga o LED para feedback visual
-      Serial.println("Ventilator ON: LOW power");
-    }
-    // Comando para desligar
+    // Command to turn OFF
     else if (input == "0") {
-      // Desliga o ventilador
       isOn = false;
-      digitalWrite(LED_PIN, LOW);  // Desliga o LED
+      digitalWrite(LED_PIN, LOW);  // Turn off LED
       Serial.println("Ventilator OFF");
+    }
+    // Command to set LOW intensity
+    else if (input == "2") {
+      currentFiringDelay = 6000;
+      Serial.println("Intensity set to LOW");
+      
+      // Update status message if already on
+      if (isOn) {
+        Serial.println("Ventilator ON: LOW intensity");
+      }
+    }
+    // Command to set MEDIUM intensity
+    else if (input == "3") {
+      currentFiringDelay = 4000;
+      Serial.println("Intensity set to MEDIUM");
+      
+      // Update status message if already on
+      if (isOn) {
+        Serial.println("Ventilator ON: MEDIUM intensity");
+      }
+    }
+    // Command to set MAXIMUM intensity
+    else if (input == "4") {
+      currentFiringDelay = 2000;
+      Serial.println("Intensity set to MAXIMUM");
+      
+      // Update status message if already on
+      if (isOn) {
+        Serial.println("Ventilator ON: MAXIMUM intensity");
+      }
     }
   }
 } 

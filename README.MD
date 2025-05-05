@@ -1,6 +1,6 @@
 # HAB Project - AI Classification System
 
-This project integrates a camera with an AI model for real-time classification. The system captures images from the webcam, processes them using a trained AI model, and displays the results on screen. It also supports serial communication with Arduino to send commands based on the classifications.
+This project integrates a camera with an AI model for real-time classification and voice recognition. The system captures images from the webcam, processes them using a trained AI model, and responds to voice commands. It also supports serial communication with Arduino to send commands based on the classifications and voice input.
 
 ## Project Structure
 
@@ -16,6 +16,11 @@ hab-proj-o36/
 │   ├── camera.py          # Module for managing the camera
 │   ├── model.py           # Module for managing the AI model
 │   └── serial_comm.py     # Module for Arduino serial communication
+├── speech_recog/          # Voice recognition module
+│   ├── voice_recognition.py  # Core voice recognition implementation
+│   ├── voice_control.py      # Voice command management
+│   ├── integration.py        # System integration
+│   └── download_model.py     # Vosk model download utility
 ├── main.py                # Application entry point
 ├── requirements.txt       # Project dependencies
 ├── setup.sh               # Setup script for regular systems
@@ -34,6 +39,8 @@ hab-proj-o36/
 - NumPy
 - Pillow
 - PySerial (for Arduino communication)
+- Vosk (for voice recognition)
+- PyAudio (for audio input)
 
 ## Installation
 
@@ -420,17 +427,45 @@ The system uses several strategies to automatically detect the Arduino port:
 
 This makes the system more robust across different operating systems and with different types of Arduino boards.
 
+## Voice Recognition
+
+The system includes voice recognition capabilities using the Vosk library. It can recognize the following commands:
+
+- "low" - Low level (sends value 2 to Arduino)
+- "medium" - Medium level (sends value 3 to Arduino)
+- "maximum" - Maximum level (sends value 4 to Arduino)
+
+### Voice Recognition Setup
+
+The setup script will automatically:
+1. Install required audio dependencies
+2. Download the Vosk model
+3. Configure audio permissions
+
+### Troubleshooting Voice Recognition
+
+If voice recognition is not working:
+1. Check if microphone is connected and detected
+2. Run `arecord -l` to list audio devices
+3. Verify Vosk model is downloaded correctly
+4. Confirm user has audio permissions
+
 ## How It Works
 
-1. The program loads the specified AI model.
+1. The program loads the specified AI model and voice recognition system.
 2. By default, it tries to connect to Arduino and verifies if it's responding (unless `--no-arduino` is specified).
 3. Initializes the camera and starts capturing frames.
 4. At regular intervals, the current frame is processed by the AI model.
 5. The classification result is displayed on screen along with the prediction confidence.
-6. If connected to Arduino, sends commands based on the classification:
-   - "Good" -> Sends '1'
-   - "Bad" -> Sends '0'
-   - "Nothing" -> Sends nothing
+6. If connected to Arduino, sends commands based on:
+   - Image classification:
+     - "Good" -> Sends '1'
+     - "Bad" -> Sends '0'
+     - "Nothing" -> Sends nothing
+   - Voice commands:
+     - "low" -> Sends '2'
+     - "medium" -> Sends '3'
+     - "maximum" -> Sends '4'
 7. Press 'q' to quit the program.
 
 ## Arduino Communication
@@ -497,3 +532,23 @@ Main methods:
 - `disconnect()`: Disconnects from Arduino
 - `send_command(command)`: Sends a command to Arduino
 - `send_label_command(label)`: Sends a command based on the model's label
+
+#### speech_recog.voice_recognition.VoiceRecognizer
+
+Class responsible for voice recognition using Vosk.
+
+Main methods:
+- `__init__(model_path)`: Initializes the voice recognition model
+- `start_recognition()`: Starts listening for voice commands
+- `stop_recognition()`: Stops the voice recognition process
+- `process_command(command)`: Processes recognized voice commands
+
+#### speech_recog.voice_control.VoiceControl
+
+Class for managing voice commands and callbacks.
+
+Main methods:
+- `__init__(callback)`: Initializes voice control with callback function
+- `start()`: Starts voice recognition in a separate thread
+- `stop()`: Stops voice recognition
+- `set_command_callback(callback)`: Sets callback for voice commands

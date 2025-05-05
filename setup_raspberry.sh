@@ -55,7 +55,12 @@ sudo apt-get install -y \
     cmake \
     libgtk-3-dev \
     python3-dev \
-    python3-numpy
+    python3-numpy \
+    portaudio19-dev \
+    python3-pyaudio \
+    libasound2-dev \
+    swig \
+    libpulse-dev
 
 # Rebuild and install OpenCV with GUI support
 echo "Building OpenCV with GUI support..."
@@ -136,10 +141,18 @@ echo "Installing Python dependencies..."
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 
+# Download and setup Vosk model
+echo "Setting up Vosk model..."
+if [ ! -d "speech_recog/model-en-us-small" ]; then
+    echo "Downloading Vosk model..."
+    python speech_recog/download_model.py
+fi
+
 # Setup permissions for camera and serial ports
 echo "Setting up permissions..."
 sudo usermod -a -G video $USER
 sudo usermod -a -G dialout $USER
+sudo usermod -a -G audio $USER
 
 # Convert Keras model to TFLite if needed
 if [ -f "converted_keras/keras_model.h5" ] && [ ! -f "converted_keras/model.tflite" ]; then
