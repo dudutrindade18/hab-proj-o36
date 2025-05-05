@@ -1,0 +1,91 @@
+Projeto de Automação Residencial com Raspberry Pi e Arduino
+
+Este projeto consiste em um sistema de automação residencial que utiliza uma Raspberry Pi como controladora principal e um Arduino como dispositivo periférico para controle de dispositivos. O sistema integra diferentes tecnologias para criar uma solução robusta e flexível de automação.
+
+Arquitetura do Sistema
+
+O projeto é organizado em uma estrutura modular, com diferentes componentes responsáveis por funções específicas:
+
+1. Raspberry Pi (Controladora Principal)
+   - Sistema operacional baseado em Linux
+   - Ambiente Python virtualizado (venv)
+   - Scripts de inicialização automática
+   - Serviço systemd para execução contínua
+   - Interface de comunicação serial com Arduino
+
+2. Arduino (Dispositivo Periférico)
+   - Firmware personalizado para controle de dispositivos
+   - Comunicação serial com a Raspberry Pi
+   - Interface com sensores e atuadores
+
+3. Módulos do Sistema
+   - speech_recog/: Módulo de reconhecimento de voz
+   - hab_proj/: Código principal do projeto
+   - arduino_code/: Firmware do Arduino
+   - converted_keras/: Modelos de machine learning
+
+Tecnologias Utilizadas
+
+1. Hardware
+   - Raspberry Pi (modelo não especificado)
+   - Arduino (modelo não especificado)
+   - Sensores e atuadores diversos
+   - Interface de áudio para reconhecimento de voz
+
+2. Software
+   - Python 3.x
+   - Bibliotecas principais:
+     * numpy: Processamento numérico
+     * opencv-python: Processamento de imagem
+     * tensorflow: Machine learning
+     * pyserial: Comunicação serial
+     * vosk: Reconhecimento de voz
+     * pyaudio: Captura de áudio
+     * RPi.GPIO: Controle de GPIO da Raspberry Pi
+
+3. Comunicação
+   - Protocolo serial entre Raspberry Pi e Arduino
+   - Interface de voz para comandos
+   - Sistema de arquivos para configuração
+
+Organização do Código
+
+O projeto segue uma estrutura bem definida:
+
+1. Scripts de Configuração
+   - setup.sh: Configuração inicial do ambiente
+   - setup_raspberry.sh: Configuração específica da Raspberry Pi
+   - setup_autostart.sh: Configuração de inicialização automática
+   - check_venv.sh: Verificação do ambiente virtual
+
+2. Código Principal
+   - main.py: Ponto de entrada do sistema
+   - test_arduino.py: Testes de comunicação com Arduino
+   - webcam.py: Interface com câmera
+
+3. Módulos Especializados
+   - speech_recog/: Implementação do reconhecimento de voz
+   - hab_proj/: Lógica de negócio principal
+   - arduino_code/: Firmware do Arduino
+
+4. Configuração do Sistema
+   - requirements.txt: Dependências do projeto
+   - hab_proj_autostart.service: Configuração do serviço systemd
+
+Comunicação Raspberry Pi - Arduino
+
+A comunicação entre a Raspberry Pi e o Arduino é realizada através de um protocolo serial, implementado utilizando a biblioteca pyserial. O sistema segue um padrão de comunicação mestre-escravo, onde:
+
+1. A Raspberry Pi atua como mestre, enviando comandos e recebendo respostas
+2. O Arduino atua como escravo, executando comandos e reportando status
+3. O protocolo de comunicação inclui:
+   - Comandos de controle
+   - Confirmações de recebimento
+   - Status de execução
+   - Dados de sensores
+
+O sistema implementa mecanismos de verificação de erro e retransmissão para garantir a confiabilidade da comunicação.
+
+Conclusão
+
+Este projeto demonstra a integração de diferentes tecnologias para criar um sistema de automação residencial robusto e flexível. A arquitetura modular permite fácil expansão e manutenção, enquanto a comunicação serial entre Raspberry Pi e Arduino proporciona uma solução eficiente para controle de dispositivos. O uso de reconhecimento de voz e processamento de imagem adiciona camadas de interação natural com o sistema, tornando-o mais acessível e intuitivo para os usuários. 

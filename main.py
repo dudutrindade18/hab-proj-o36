@@ -10,6 +10,7 @@ import platform
 from hab_proj.model import AIModel
 from hab_proj.camera import Camera
 from hab_proj.serial_comm import ArduinoSerial
+from speech_recog.integration import setup_default_voice_commands
 
 def parse_args():
     """
@@ -131,6 +132,11 @@ def main():
         else:
             print("Arduino communication disabled.")
         
+        # Initialize voice recognition
+        print("Initializing voice recognition...")
+        voice_control = setup_default_voice_commands(arduino_serial)
+        print("Voice recognition initialized. Say 'low', 'medium' or 'maximum' to control the system.")
+        
         # Initialize the camera with the model and Arduino
         camera = Camera(
             camera_id=args.camera, 
@@ -162,6 +168,10 @@ def main():
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # Stop voice recognition when the program ends
+        if 'voice_control' in locals():
+            voice_control.stop()
 
 if __name__ == "__main__":
     main() 
