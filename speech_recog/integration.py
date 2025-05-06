@@ -52,15 +52,15 @@ def setup_default_voice_commands(arduino_serial=None):
             
         # Mapeia comandos para sinais do Arduino
         if command == "low":
-            arduino_serial.send_command(0)  # Valor baixo
+            arduino_serial.send_command('2')  # Valor baixo
             print(f"[VOICE] Enviando comando LOW ({value}) para o Arduino")
             
         elif command == "medium":
-            arduino_serial.send_command(1)  # Valor médio
+            arduino_serial.send_command('3')  # Valor médio
             print(f"[VOICE] Enviando comando MEDIUM ({value}) para o Arduino")
             
         elif command == "maximum":
-            arduino_serial.send_command(2)  # Valor máximo
+            arduino_serial.send_command('4')  # Valor máximo
             print(f"[VOICE] Enviando comando MAXIMUM ({value}) para o Arduino")
     
     # Configura e inicia o reconhecimento de voz com a função de callback
