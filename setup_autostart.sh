@@ -9,10 +9,6 @@ echo "===== HAB Project - Autostart Setup ====="
 CURRENT_USER=$(whoami)
 PROJECT_DIR=$(pwd)
 
-# Update the service file with the correct username and paths
-sed -i "s|User=hab-proj5|User=$CURRENT_USER|g" hab_proj_autostart.service
-sed -i "s|/home/hab-proj5/Desktop/hab-proj-o36|$PROJECT_DIR|g" hab_proj_autostart.service
-
 # Pergunte se o usuário deseja rodar com ou sem Arduino
 read -p "Deseja usar o Arduino? (y/n) " -n 1 -r
 echo
@@ -55,21 +51,42 @@ if [ ! -z "$EXTRA_ARGS" ]; then
     ARGS="$ARGS $EXTRA_ARGS"
 fi
 
-# Atualize o comando ExecStart no arquivo de serviço
-sed -i "s|python /.*main.py.*|python $PROJECT_DIR/main.py $ARGS'|g" hab_proj_autostart.service
-
-# Crie um script para iniciar o serviço
+# Crie um script para iniciar o serviço - abordagem mais simples e direta
 cat > start_service.sh << EOF
 #!/bin/bash
-source $PROJECT_DIR/venv/bin/activate
 cd $PROJECT_DIR
-python main.py $ARGS
+source $PROJECT_DIR/venv/bin/activate
+python $PROJECT_DIR/main.py $ARGS
 EOF
 
 chmod +x start_service.sh
+echo "Script de inicialização criado: $PROJECT_DIR/start_service.sh"
 
-# Update ExecStart to use the script
-sed -i "s|ExecStart=.*|ExecStart=/bin/bash -c '$PROJECT_DIR/start_service.sh'|g" hab_proj_autostart.service
+# Crie o arquivo de serviço do zero, evitando problemas de substituição
+cat > hab_proj_autostart.service << EOF
+[Unit]
+Description=HAB Project AI Classification System
+After=network.target sound.target
+
+[Service]
+Type=simple
+User=$CURRENT_USER
+WorkingDirectory=$PROJECT_DIR
+Environment="PYTHONPATH=$PROJECT_DIR"
+Environment="PATH=$PROJECT_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="DISPLAY=:0"
+ExecStart=$PROJECT_DIR/start_service.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hab-proj
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "Arquivo de serviço criado com sucesso"
 
 # Copia o arquivo de serviço para o diretório do systemd
 echo "Instalando serviço systemd..."
@@ -92,6 +109,8 @@ read -p "Iniciar o serviço agora? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     sudo systemctl start hab_proj_autostart.service
-    echo "Serviço iniciado. Verifique o status com: sudo systemctl status hab_proj_autostart.service"
+    sleep 2  # Aguarda um pouco para o serviço iniciar
+    echo "Verificando status do serviço:"
+    sudo systemctl status hab_proj_autostart.service
     echo "Para ver os logs em tempo real: sudo journalctl -fu hab_proj_autostart.service"
 fi 
