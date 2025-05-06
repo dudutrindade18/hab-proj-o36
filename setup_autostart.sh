@@ -42,6 +42,15 @@ else
     pip install opencv-python
 fi
 
+# Pergunte se o usuário deseja ver a saída no terminal
+read -p "Deseja ver a saída no terminal (recomendado para debug)? (y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    TERMINAL_OUTPUT=true
+else
+    TERMINAL_OUTPUT=false
+fi
+
 # Defina todos os argumentos
 ARGS="$ARDUINO_FLAG $VOICE_FLAG $HEADLESS_FLAG"
 
@@ -62,8 +71,45 @@ EOF
 chmod +x start_service.sh
 echo "Script de inicialização criado: $PROJECT_DIR/start_service.sh"
 
+# Script para execução com terminal visível
+cat > start_terminal_service.sh << EOF
+#!/bin/bash
+# Este script inicia o programa em um terminal visível
+lxterminal --working-directory=$PROJECT_DIR --command="$PROJECT_DIR/start_service.sh"
+EOF
+
+chmod +x start_terminal_service.sh
+echo "Script de inicialização com terminal criado: $PROJECT_DIR/start_terminal_service.sh"
+
 # Crie o arquivo de serviço do zero, evitando problemas de substituição
-cat > hab_proj_autostart.service << EOF
+if [ "$TERMINAL_OUTPUT" = true ]; then
+    # Versão com terminal visível
+    cat > hab_proj_autostart.service << EOF
+[Unit]
+Description=HAB Project AI Classification System
+After=network.target sound.target
+After=graphical.target
+
+[Service]
+Type=simple
+User=$CURRENT_USER
+WorkingDirectory=$PROJECT_DIR
+Environment="PYTHONPATH=$PROJECT_DIR"
+Environment="PATH=$PROJECT_DIR/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="DISPLAY=:0"
+ExecStart=$PROJECT_DIR/start_terminal_service.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hab-proj
+
+[Install]
+WantedBy=graphical.target
+EOF
+else
+    # Versão sem terminal visível (apenas logs)
+    cat > hab_proj_autostart.service << EOF
 [Unit]
 Description=HAB Project AI Classification System
 After=network.target sound.target
@@ -85,6 +131,7 @@ SyslogIdentifier=hab-proj
 [Install]
 WantedBy=multi-user.target
 EOF
+fi
 
 echo "Arquivo de serviço criado com sucesso"
 
@@ -113,4 +160,21 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Verificando status do serviço:"
     sudo systemctl status hab_proj_autostart.service
     echo "Para ver os logs em tempo real: sudo journalctl -fu hab_proj_autostart.service"
-fi 
+fi
+
+# Criar um script para iniciar manualmente com saída visual (sempre)
+cat > run_app.sh << EOF
+#!/bin/bash
+# Este script inicia a aplicação com saída visível no terminal
+cd $PROJECT_DIR
+source $PROJECT_DIR/venv/bin/activate
+python $PROJECT_DIR/main.py $ARGS
+EOF
+
+chmod +x run_app.sh
+echo ""
+echo "===== IMPORTANTE ====="
+echo "Script de execução manual criado: $PROJECT_DIR/run_app.sh"
+echo "Você pode executar esse script manualmente a qualquer momento para ver a saída no terminal."
+echo "Para usar: ./run_app.sh"
+echo "====================" 
