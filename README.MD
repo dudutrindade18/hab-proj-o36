@@ -290,18 +290,19 @@ To make the application start automatically when the Raspberry Pi boots up:
 
 1. Make the autostart setup script executable:
    ```
-   chmod +x setup_autostart.sh
+   chmod +x setup_autostart_simple.sh
    ```
 
 2. Run the setup script:
    ```
-   ./setup_autostart.sh
+   ./setup_autostart_simple.sh
    ```
 
-3. Follow the prompts:
-   - Choose whether to run in headless mode (recommended for systems without display)
-   - Add any additional command line arguments (e.g., `--low-power`)
-   - Choose whether to start the service immediately
+3. The script will:
+   - Add your user to the necessary audio and dialout groups for microphone and serial access
+   - Create a systemd service file configured with fixed settings (headless mode, with Arduino, with voice recognition)
+   - Enable the service to start at boot
+   - Offer to restart your system to apply permission changes
 
 4. Reboot to test the autostart functionality:
    ```
@@ -335,11 +336,12 @@ To make the application start automatically when the Raspberry Pi boots up:
   sudo systemctl enable hab_proj_autostart.service
   ```
 
-- Modify service configuration:
+- Remove the service completely:
   ```
-  sudo nano /etc/systemd/system/hab_proj_autostart.service
+  sudo systemctl stop hab_proj_autostart.service
+  sudo systemctl disable hab_proj_autostart.service
+  sudo rm /etc/systemd/system/hab_proj_autostart.service
   sudo systemctl daemon-reload
-  sudo systemctl restart hab_proj_autostart.service
   ```
 
 ## Testing Arduino Communication
